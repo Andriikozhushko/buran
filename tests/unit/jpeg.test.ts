@@ -124,11 +124,15 @@ describe('JPEG cleaner', () => {
     const buffer = loadFixture('sample.jpg');
     const cleanBuffer = cleanJpeg(buffer);
     const bytes = new Uint8Array(cleanBuffer);
+    const source = new Uint8Array(buffer);
+    const firstScan = source.findIndex((byte, index) => byte === 0xff && source[index + 1] === 0xda);
 
     // JPEG must start with SOI (FF D8 FF)
     expect(bytes[0]).toBe(0xff);
     expect(bytes[1]).toBe(0xd8);
     expect(bytes[2]).toBe(0xff);
+    expect(firstScan).toBeGreaterThan(0);
+    expect(Array.from(bytes.slice(-(source.length - firstScan)))).toEqual(Array.from(source.slice(firstScan)));
   });
 
   it('preserves restart markers inside compressed image data', () => {

@@ -6,11 +6,7 @@ const SOS = 0xffda;
 const APP1 = 0xffe1; // EXIF
 const APP2 = 0xffe2; // ICC / FPXR
 const APP13 = 0xffed; // IPTC
-const APP14 = 0xffee; // Adobe
 const COM = 0xfffe; // Comment
-const DQT = 0xffdb; // Quantization table
-const DHT = 0xffc4; // Huffman table
-const DRI = 0xffdd; // Restart interval
 const SOF0 = 0xffc0;
 const SOF2 = 0xffc2;
 
@@ -741,91 +737,79 @@ function scanJpeg(buffer: ArrayBuffer): ScanResult {
 }
 
 function cleanJpeg(buffer: ArrayBuffer): ArrayBuffer {
-  const segments = findJpegSegments(buffer);
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return buffer.slice(0);
 
-  // Collect segments to keep
-  const keepSegments: Array<{ start: number; length: number }> = [];
+  const kept: Uint8Array[] = [bytes.slice(0, 2)];
+  let offset = 2;
 
-  // Always keep SOI
-  keepSegments.push({ start: 0, length: 2 });
+  // JPEG metadata lives in header segments. Once SOS is reached, preserve the
+  // entire encoded stream verbatim: it may contain restart markers, multiple
+  // scans, and marker-like byte sequences that must not be parsed or rebuilt.
+  while (offset < bytes.length - 1) {
+    // Some camera files contain malformed metadata length fields. Keep looking
+    // for the next header marker instead of treating metadata bytes as image data.
+    if (bytes[offset] !== 0xff) {
+      offset++;
+      continue;
+    }
 
-  for (const seg of segments) {
-    const markerByte = seg.marker & 0xff;
+    const start = offset;
+    while (offset < bytes.length && bytes[offset] === 0xff) offset++;
+    if (offset >= bytes.length) return buffer.slice(0);
 
-    // Always keep SOS and image data
+    const markerByte = bytes[offset++];
+    if (markerByte === 0x00) continue;
     if (markerByte === 0xda) {
-      keepSegments.push({ start: seg.start, length: seg.totalLength });
-      continue;
+      kept.push(bytes.slice(start));
+      return joinJpegSegments(kept);
     }
-
-    // Keep EOI
     if (markerByte === 0xd9) {
-      keepSegments.push({ start: seg.start, length: 2 });
-      break;
+      kept.push(bytes.slice(start, offset));
+      return joinJpegSegments(kept);
     }
 
-    // Keep essential structural markers
-    if (
-      seg.marker === DQT || // Quantization tables
-      seg.marker === DHT || // Huffman tables
-      seg.marker === DRI || // Restart interval
-      seg.marker === SOF0 || // Baseline DCT
-      seg.marker === SOF2 || // Progressive DCT
-      (markerByte >= 0xd0 && markerByte <= 0xd7) // RST markers
-    ) {
-      keepSegments.push({ start: seg.start, length: seg.totalLength });
+    if ((markerByte >= 0xd0 && markerByte <= 0xd8) || markerByte === 0x01) {
+      kept.push(bytes.slice(start, offset));
       continue;
     }
 
-    // Keep ICC profile (APP2 with ICC marker)
-    if (seg.marker === APP2 && seg.dataLength > 12) {
-      const header = new Uint8Array(buffer, seg.dataStart, 12);
-      let isIcc = false;
-      const sig = 'ICC_PROFILE';
-      if (header.length >= 11) {
-        isIcc = true;
-        for (let i = 0; i < 11; i++) {
-          if (header[i] !== sig.charCodeAt(i)) {
-            isIcc = false;
-            break;
-          }
-        }
-      }
-      if (isIcc) {
-        keepSegments.push({ start: seg.start, length: seg.totalLength });
-      }
-      continue;
+    if (offset + 2 > bytes.length) return buffer.slice(0);
+    const length = (bytes[offset] << 8) | bytes[offset + 1];
+    const end = offset + length;
+    if (length < 2 || end > bytes.length) return buffer.slice(0);
+
+    const isIccProfile = markerByte === 0xe2 && hasIccProfileHeader(bytes, offset + 2);
+    const isRemovableMetadata = markerByte === 0xfe || (markerByte >= 0xe1 && markerByte <= 0xef);
+
+    if (!isRemovableMetadata || isIccProfile) {
+      kept.push(bytes.slice(start, end));
     }
-
-    // Keep APP14 (Adobe) if it contains colour transform info
-    if (seg.marker === APP14 && seg.dataLength >= 5) {
-      const data = new Uint8Array(buffer, seg.dataStart, 5);
-      if (data[0] === 0x41 && data[1] === 0x64 && data[2] === 0x6f && data[3] === 0x62 && data[4] === 0x65) {
-        // Adobe segment with transform flag — keep for colour correctness
-        keepSegments.push({ start: seg.start, length: seg.totalLength });
-      }
-      continue;
-    }
-
-    // Skip: APP0 (JFIF), APP1 (EXIF/XMP), APP13 (IPTC), COM (comment), other APPn
-    // These are the metadata we're removing
+    offset = end;
   }
 
-  // Stitch together the kept segments into a new buffer
-  let totalLength = 0;
-  for (const s of keepSegments) {
-    totalLength += s.length;
-  }
+  // Do not fabricate a partial JPEG if the header never reaches SOS/EOI.
+  return buffer.slice(0);
+}
 
-  const clean = new Uint8Array(totalLength);
-  let outOffset = 0;
-  for (const s of keepSegments) {
-    const srcData = new Uint8Array(buffer, s.start, s.length);
-    clean.set(srcData, outOffset);
-    outOffset += s.length;
+function hasIccProfileHeader(bytes: Uint8Array, offset: number): boolean {
+  const signature = 'ICC_PROFILE\0';
+  if (offset + signature.length > bytes.length) return false;
+  for (let i = 0; i < signature.length; i++) {
+    if (bytes[offset + i] !== signature.charCodeAt(i)) return false;
   }
+  return true;
+}
 
-  return clean.buffer;
+function joinJpegSegments(segments: Uint8Array[]): ArrayBuffer {
+  const length = segments.reduce((total, segment) => total + segment.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  for (const segment of segments) {
+    output.set(segment, offset);
+    offset += segment.length;
+  }
+  return output.buffer;
 }
 
 function verifyJpeg(original: ScanResult, cleanBuffer: ArrayBuffer): VerificationResult {
