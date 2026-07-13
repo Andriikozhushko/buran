@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanJpeg, cleanJpeg } from '../../src/lib/formats/jpeg';
+import { scanJpeg, cleanJpeg, verifyJpeg } from '../../src/lib/formats/jpeg';
 import {
   extractJpegOrientation,
   orientationSwapsDimensions,
@@ -98,6 +98,19 @@ describe('JPEG orientation cleaning', () => {
       (f) => f.field === 'EXIF:Orientation' || f.field === 'EXIF:Ориентация',
     );
     expect(orientationFinding).toBeUndefined();
+  });
+
+  it('retains only the technical orientation tag without re-encoding pixels', () => {
+    const original = load('orientation-6.jpg');
+    const scan = scanJpeg(original);
+    const clean = cleanJpeg(original, 6);
+    const rescan = scanJpeg(clean);
+    const verification = verifyJpeg(scan, clean);
+
+    expect(rescan.orientation).toBe(6);
+    expect(verification.passed).toBe(true);
+    expect(verification.metadataRemaining).toBe(0);
+    expect(verification.pixelDataReencoded).toBe(false);
   });
 
   it('cleanJpeg preserves valid JPEG structure for all orientations', () => {

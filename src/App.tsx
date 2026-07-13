@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ScanResult, VerificationResult } from './lib/formats/types';
 import { validateFile } from './lib/validation';
 import { sha256 } from './lib/hash';
-import { correctJpegOrientation } from './lib/image-orientation';
 import { Layout } from './components/Layout';
 import { ScanReport } from './components/ScanReport';
 import { SuccessResult } from './components/SuccessResult';
@@ -254,7 +253,7 @@ export default function App() {
     setPhase({ phase: 'cleaning', scanResult });
 
     const worker = cleanWorkerRef.current;
-    let bufferToClean = originalBufferRef.current;
+    const bufferToClean = originalBufferRef.current;
 
     if (!worker || !bufferToClean) {
       setPhase({ phase: 'error', message: t.appErrCleanStart });
@@ -267,26 +266,9 @@ export default function App() {
       scanResult.orientation !== null &&
       scanResult.orientation !== 1;
 
-    if (needsOrientationCorrection) {
-      try {
-        // Apply physical rotation on the main thread via canvas
-        bufferToClean = await correctJpegOrientation(
-          bufferToClean,
-          scanResult.orientation!,
-        );
-        // Canvas-re-encoded JPEG won't have EXIF, so the worker just strips any
-        // residual metadata and verifies. The verification will note orientationApplied=true.
-      } catch {
-        // If orientation correction fails, continue with original buffer
-        // (the clean worker will still strip metadata from it)
-      }
-    }
-
     const id = Math.random().toString(36).substring(2, 10);
     operationRef.current = { id, kind: 'clean' };
     startWatchdog(id, 'clean');
-
-    const needsReencode = needsOrientationCorrection;
 
     const handleMessage = async (event: MessageEvent) => {
       const response = event.data;
@@ -309,8 +291,8 @@ export default function App() {
         const verification: VerificationResult = {
           ...response.verification,
           cleanHash: hash,
-          orientationApplied: needsOrientationCorrection,
-          pixelDataReencoded: needsReencode,
+          orientationApplied: false,
+          pixelDataReencoded: false,
         };
 
         setPhase({
@@ -331,6 +313,7 @@ export default function App() {
         id,
         buffer: bufferToClean,
         scanResult,
+        preserveJpegOrientation: needsOrientationCorrection,
         locale,
       },
       { transfer: [bufferToClean] },

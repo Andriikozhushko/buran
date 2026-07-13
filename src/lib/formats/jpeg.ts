@@ -736,11 +736,14 @@ function scanJpeg(buffer: ArrayBuffer): ScanResult {
   };
 }
 
-function cleanJpeg(buffer: ArrayBuffer): ArrayBuffer {
+function cleanJpeg(buffer: ArrayBuffer, orientationToPreserve?: number): ArrayBuffer {
   const bytes = new Uint8Array(buffer);
   if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return buffer.slice(0);
 
   const kept: Uint8Array[] = [bytes.slice(0, 2)];
+  if (orientationToPreserve && orientationToPreserve >= 2 && orientationToPreserve <= 8) {
+    kept.push(buildOrientationSegment(orientationToPreserve));
+  }
   let offset = 2;
 
   // JPEG metadata lives in header segments. Once SOS is reached, preserve the
@@ -801,6 +804,20 @@ function hasIccProfileHeader(bytes: Uint8Array, offset: number): boolean {
   return true;
 }
 
+function buildOrientationSegment(orientation: number): Uint8Array {
+  // Minimal EXIF/TIFF payload: it keeps display orientation without retaining
+  // camera, location, author, date, thumbnail, or other personal metadata.
+  return Uint8Array.from([
+    0xff, 0xe1, 0x00, 0x22,
+    0x45, 0x78, 0x69, 0x66, 0x00, 0x00,
+    0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
+    0x01, 0x00,
+    0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+    orientation, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+  ]);
+}
+
 function joinJpegSegments(segments: Uint8Array[]): ArrayBuffer {
   const length = segments.reduce((total, segment) => total + segment.length, 0);
   const output = new Uint8Array(length);
@@ -821,8 +838,14 @@ function verifyJpeg(original: ScanResult, cleanBuffer: ArrayBuffer): Verificatio
   ).length;
 
   // Count privacy-relevant metadata remaining (exclude ICC mention)
+  const orientationRetained =
+    original.orientation !== null &&
+    original.orientation !== 1 &&
+    rescan.orientation === original.orientation;
   const metadataRemaining = rescan.findings.filter(
-    (f) => f.category !== 'other' || !f.field.includes('ICC'),
+    (f) =>
+      (f.category !== 'other' || !f.field.includes('ICC')) &&
+      !(orientationRetained && f.field === 'EXIF:Orientation'),
   ).length;
 
   const technicalDataPreserved: string[] = [];
@@ -833,17 +856,14 @@ function verifyJpeg(original: ScanResult, cleanBuffer: ArrayBuffer): Verificatio
     const d = rescan.preservedInfo.dimensions;
     technicalDataPreserved.push(`Dimensions: ${d.width}×${d.height}`);
   }
+  if (orientationRetained) technicalDataPreserved.push('Display orientation');
 
   const limitations: string[] = [];
   if (original.preservedInfo.hasIccProfile && !rescan.preservedInfo.hasIccProfile) {
     limitations.push('ICC profile was not preserved');
   }
 
-  // Determine if orientation correction was applied
-  const orientationWasApplied =
-    original.orientation !== null && original.orientation !== 1;
-  // Pixel data was re-encoded if orientation correction was applied
-  const pixelDataReencoded = orientationWasApplied;
+  const pixelDataReencoded = false;
 
   return {
     passed: metadataRemaining === 0,
@@ -853,7 +873,7 @@ function verifyJpeg(original: ScanResult, cleanBuffer: ArrayBuffer): Verificatio
     cleanHash: '', // Will be filled by caller
     processedLocally: true,
     limitations,
-    orientationApplied: orientationWasApplied,
+    orientationApplied: false,
     pixelDataReencoded,
     remainingUnsupportedMetadataRisk: null,
   };

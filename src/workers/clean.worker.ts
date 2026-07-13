@@ -5,7 +5,7 @@
  * Returns:  { id, cleanBuffer?, verification?, error? }
  */
 
-import { jpegHandler } from '../lib/formats/jpeg';
+import { cleanJpeg, jpegHandler } from '../lib/formats/jpeg';
 import { pngHandler } from '../lib/formats/png';
 import { webpHandler } from '../lib/formats/webp';
 import type { PdfScanData } from '../lib/formats/pdf/types';
@@ -21,6 +21,7 @@ interface CleanRequest {
   id: string;
   buffer: ArrayBuffer;
   scanResult: ScanResult;
+  preserveJpegOrientation?: boolean;
 }
 
 interface CleanResponse {
@@ -31,7 +32,7 @@ interface CleanResponse {
 }
 
 self.onmessage = async (event: MessageEvent<CleanRequest>) => {
-  const { id, buffer, scanResult } = event.data;
+  const { id, buffer, scanResult, preserveJpegOrientation } = event.data;
 
   try {
     if (scanResult.format === 'pdf') {
@@ -205,7 +206,10 @@ self.onmessage = async (event: MessageEvent<CleanRequest>) => {
     }
 
     const handler = imageHandlers[scanResult.format];
-    const cleanBuffer = handler.clean(buffer);
+    const cleanBuffer =
+      scanResult.format === 'jpeg' && preserveJpegOrientation
+        ? cleanJpeg(buffer, scanResult.orientation ?? undefined)
+        : handler.clean(buffer);
     const verification = handler.verify(scanResult, cleanBuffer);
 
     self.postMessage({ id, cleanBuffer, verification } satisfies CleanResponse, {
