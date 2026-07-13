@@ -28,7 +28,9 @@ export function SuccessResult({ scanResult, cleanResult, verification, onReset }
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Mobile browsers may not start reading the blob until after the click.
+    // Keep it alive briefly so the downloaded image is not empty.
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
   const handleCertificate = async () => {

@@ -431,7 +431,20 @@ function findJpegSegments(buffer: ArrayBuffer): Array<{
 
       // Now we're in entropy-coded data. Scan for next marker.
       while (offset < view.byteLength - 1) {
-        if (view.getUint8(offset) === 0xff && view.getUint8(offset + 1) !== 0x00 && view.getUint8(offset + 1) !== 0xff) {
+        if (view.getUint8(offset) === 0xff) {
+          const next = view.getUint8(offset + 1);
+
+          // Byte-stuffed FF bytes and restart markers belong to the compressed
+          // image data. Dropping restart markers corrupts many phone JPEGs.
+          if (next === 0x00 || (next >= 0xd0 && next <= 0xd7)) {
+            offset += 2;
+            continue;
+          }
+          if (next === 0xff) {
+            offset++;
+            continue;
+          }
+
           break;
         }
         offset++;
