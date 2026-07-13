@@ -1,0 +1,32 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 6 0 R >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R >>
+endobj
+5 0 obj
+<<  /Length 57 >>
+stream
+BT /F1 18 Tf 72 700 Td (SENTINEL_VISIBLE_BODY_TEXT) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Names [(secret.txt) 7 0 R] >>
+endobj
+7 0 obj
+<< /Type /Filespec /F (secret.txt) /EF << /F 8 0 R >> >>
+endobj
+8 0 obj
+<< /Type /EmbeddedFile /Length 27 >>
+stream
+SENTINEL_ATTACHMENT_CONTENT
+endstream
+endobj
+trailer
+<< /Root 1 0 R /ID [<55ee> <66ff>] >>
+%%EOF

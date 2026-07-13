@@ -1,0 +1,61 @@
+{
+  "name": "buran",
+  "private": false,
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://buran.pet",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Andriikozhushko/buran.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Andriikozhushko/buran/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint src/",
+    "lint:fix": "eslint --fix src/",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:watch": "vitest",
+    "test:fixtures": "npx tsx tests/fixtures/generate-test-images.ts",
+    "test:fixtures:pdf": "npx tsx tests/fixtures/generate-test-pdfs.ts",
+    "test:fixtures:office": "npx tsx tests/fixtures/generate-office-fixtures.ts"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "jszip": "^3.10.1",
+    "libheif-js": "^1.19.8",
+    "pdf-lib": "^1.17.1",
+    "pdfmake": "^0.3.11",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@fontsource/noto-sans-armenian": "^5.2.8",
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^10.5.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "oxlint": "^1.69.0",
+    "prettier": "^3.8.4",
+    "tailwindcss": "^4.3.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.62.0",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
+  }
+}

@@ -1,0 +1,15 @@
+# Test fixtures and binary assets must never be line-ending converted.
+# The hand-built PDF fixtures are mostly ASCII (no NUL bytes), so without this
+# git would treat them as text and CRLF conversion would corrupt byte offsets
+# and stream /Length values.
+*.pdf binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.mp4 binary
+# OOXML packages (ZIP) and the synthetic malformed/encrypted Office fixtures.
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.docm binary

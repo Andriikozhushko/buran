@@ -1,0 +1,465 @@
+const strings = {
+  appName: 'BURAN',
+  appTagline: 'Feed BURAN your metadata.',
+  headline: 'Накорми Бурана метаданными',
+  subheadline:
+    'Проверяй и удаляй личные метаданные из файлов прямо в браузере. Файлы никуда не загружаются.',
+
+  trustLocal: 'Локально в браузере',
+  trustNoReg: 'Без регистрации',
+  trustNoStorage: 'Без хранения файлов',
+  trustOpenSource: 'Open source',
+
+  dropzoneTitle: 'Перетащите файл сюда',
+  dropzoneOr: 'или',
+  dropzoneBrowse: 'выберите файл',
+  dropzoneFormats: 'JPG, PNG, WebP',
+  dropzoneSizeLimit: 'До 50 МБ',
+
+  errorFileTooBig: 'Файл слишком большой. Максимальный размер — 50 МБ.',
+  errorUnsupported: 'Этот формат пока не поддерживается.',
+  errorProcessing: 'Не удалось обработать файл. Попробуйте другой.',
+
+  scanTitle: 'Отчёт о метаданных',
+  scanFound: 'Обнаружено метаданных',
+  scanPersonal: 'личных',
+  scanWhatKept: 'Что Буран сохранит',
+  scanKeptPixels: 'Пиксели изображения',
+  scanKeptDimensions: 'Размеры',
+  scanKeptTransparency: 'Прозрачность',
+  scanKeptIcc: 'Цветовой профиль / ICC',
+  scanKeptColour: 'Данные цветопередачи',
+  scanOrientationTitle: 'Ориентация изображения',
+  scanOrientationDesc:
+    'Фото использует служебный тег поворота. BURAN сохранит правильное отображение и удалит этот тег.',
+
+  ctaClean: 'Удалить метаданные',
+
+  progressScanning: 'Буран ищет следы',
+  progressCleaning: 'Буран съедает метаданные',
+  progressVerifying: 'Проверяем чистую копию',
+
+  successTitle: 'BURAN CLEAN VERIFIED',
+  successPersonalFound: 'Обнаружено личных метаданных',
+  successPersonalRemaining: 'Личных метаданных осталось',
+  successColourRetained: 'Сохранено технических цветовых данных',
+  successVerification: 'Верификация',
+  successVerificationPassed: 'Пройдена',
+  successProcessedLocally: 'Обработано локально',
+  successOrientationFixed: 'Ориентация исправлена',
+  successOrientationFixedDesc:
+    'BURAN физически применил поворот изображения и удалил служебный EXIF-тег.',
+  successPixelReencoded: 'Пиксельные данные пересобраны',
+  successPixelPreserved: 'Пиксельные данные сохранены без повторного кодирования',
+  successDownload: 'Скачать чистый файл',
+  successDownloadFilename: 'buran-clean',
+  successScope:
+    'Личные метаданные удалены. Технические цветовые данные сохранены. Видимый контент, водяные знаки, стеганография, QR-коды, лица, текст на изображениях и встроенные секреты в содержимом документа не входят в область очистки метаданных.',
+
+  certificateTitle: 'Сертификат очистки',
+  certificateDownload: 'Скачать сертификат (PDF)',
+  certificatePrint: 'Распечатать сертификат',
+  certificateFileType: 'Тип файла',
+  certificateDateTime: 'Дата и время проверки',
+  certificateFound: 'Обнаружено',
+  certificateRemoved: 'Удалено',
+  certificateRemaining: 'Осталось',
+  certificateVerification: 'Результат верификации',
+  certificateColourProfile: 'Сохранённый цветовой профиль',
+  certificateHash: 'SHA-256 чистого файла',
+  certificateProcessedLocally: 'Обработано локально в вашем браузере',
+  certificateScopeShort:
+    'Сертификат подтверждает удаление поддерживаемых личных метаданных. Не охватывает видимый контент, водяные знаки и стеганографию.',
+
+  verifyPassed: 'Пройдена',
+  verifyYes: 'Да',
+
+  // --- PDF (milestone 02A) ---
+  pdfPreservePanel:
+    'BURAN сохранит содержимое документа: страницы, текст, изображения, ссылки и структуру PDF.',
+  pdfPreserveNote:
+    'Удаляются только личные и идентифицирующие метаданные. Видимое содержимое документа не изменяется.',
+  pdfBlockedReassurance:
+    'BURAN не создаёт «очищенную» копию, если не может гарантировать сохранность документа и его свойств. Это честное состояние, а не ошибка.',
+  pdfSuccessTitle: 'PDF CLEAN VERIFIED',
+  pdfSuccessFound: 'Личных метаданных найдено',
+  pdfSuccessRemaining: 'Личных метаданных осталось',
+  pdfSuccessPages: 'Страниц сохранено',
+  pdfSuccessStructure: 'Структура документа',
+  pdfSuccessStructureChecked: 'проверена',
+  pdfSuccessLocal: 'Обработано локально',
+  pdfDownloadFilename: 'buran-clean',
+  pdfDropFormats: 'JPG, PNG, WebP, PDF',
+
+  // --- Office (milestone 02B) ---
+  officePreservePanel:
+    'BURAN сохранит текст, изображения, таблицы, формулы, страницы, слайды, ссылки и содержимое комментариев. Удаляются только поддерживаемые метаданные и идентификаторы авторства.',
+  officeSuccessTitle: 'BURAN CLEAN VERIFIED',
+  officeSuccessFound: 'Личных метаданных найдено',
+  officeSuccessRemaining: 'Личных метаданных осталось',
+  officeProps: 'Свойства документа',
+  officePropsRemoved: 'удалены',
+  officeCommentAuthors: 'Авторы комментариев',
+  officeCommentAuthorsAnon: 'анонимизированы',
+  officeRevisions: 'История правок',
+  officeRevisionsCleaned: 'очищена',
+  officeEmbeddedImages: 'Встроенные изображения',
+  officeStructure: 'Структура Office-документа',
+  officeStructureChecked: 'проверена',
+  officeDropFormats: 'JPG, PNG, WebP, PDF, DOCX, XLSX, PPTX',
+  zipDropFormats: 'JPG, PNG, WebP, HEIC/HEIF, PDF, DOCX, XLSX, PPTX, ZIP',
+
+  unsupportedTitle: 'Формат пока не поддерживается',
+  unsupportedGeneric: 'Этот формат файла пока не поддерживается BURAN.',
+  unsupportedWhy:
+    'Поддержка каждого формата добавляется осторожно, потому что обработка метаданных отличается для разных типов файлов. Мы не применяем общие или непроверенные методы очистки.',
+  unsupportedRoadmap: 'Следующие форматы в плане: TIFF, GIF, SVG, ODT, ODS, ODP.',
+  unsupportedRetry: 'Попробуйте другой файл',
+
+  limitationsTitle: 'Что остаётся за пределами очистки',
+  limitationsList: [
+    'Видимый контент (лица, номера, документы)',
+    'Водяные знаки и стеганография',
+    'QR-коды и встроенные ссылки',
+    'Текст внутри изображения',
+    'Секреты, встроенные в содержимое документа',
+    'Метаданные в неподдерживаемых форматах',
+  ],
+
+  footerText: 'BURAN — open-source инструмент для локальной очистки метаданных.',
+  privacyLink: 'Приватность',
+  privacyTitle: 'Приватность и безопасность',
+  privacyClose: 'Закрыть',
+  privacyIntro:
+    'BURAN создан как local-first инструмент: проверка и очистка файлов выполняются в вашем браузере. Эта страница кратко объясняет, какие данные обрабатываются и где проходят границы гарантии.',
+  privacyLocalTitle: 'Файлы не загружаются',
+  privacyLocalText:
+    'Содержимое файлов и найденные метаданные не отправляются на сервер BURAN и не сохраняются приложением. После закрытия вкладки файл остаётся только у вас.',
+  privacyNoAnalyticsTitle: 'Без аналитики и трекинга',
+  privacyNoAnalyticsText:
+    'BURAN не использует cookies, рекламные пиксели или встроенные сторонние платежные/аналитические виджеты. Для очистки файлов не нужен аккаунт или регистрация.',
+  privacyLimitsTitle: 'Границы гарантии',
+  privacyLimitsText:
+    'BURAN удаляет поддерживаемые метаданные и проверяет результат после очистки, но не меняет видимый контент, водяные знаки, стеганографию или скрытые данные в неподдерживаемых форматах.',
+
+  severityHigh: 'Высокая',
+  severityMedium: 'Средняя',
+  severityLow: 'Низкая',
+
+  // --- App shell: dropzone, processing, errors ---
+  appDropPrompt: 'Перетащите файл или нажмите',
+  appDropPromptActive: 'Отпустите файл',
+  appDropSizes: 'изобр. до 50 МБ, PDF/Office/ZIP до 100 МБ',
+  appProcScanArchive: 'Проверяем структуру архива и ищем личные метаданные…',
+  appProcScanFile: 'Проверяем структуру файла и ищем личные метаданные…',
+  appProcCleanArchive: 'Удаляем поддерживаемые следы, пересобираем архив и проверяем чистую копию…',
+  appProcCleanFile: 'Удаляем поддерживаемые следы и проверяем чистую копию…',
+  appCancel: 'Отменить обработку',
+  appErrTooLarge: 'Файл слишком большой. Максимальный размер — 50 МБ для изображений и 100 МБ для PDF/Office/ZIP.',
+  appErrReadFailed: 'Не удалось прочитать файл.',
+  appErrWorkerUnavailable: 'Web Worker не доступен.',
+  appErrCleanStart: 'Не удалось начать очистку.',
+  appUnknownType: 'неизвестный',
+
+  // --- Success result screen ---
+  successBannerFail: 'ВЕРИФИКАЦИЯ НЕ ПРОЙДЕНА',
+  successDescPassed: 'Личные метаданные удалены и результат повторно проверен локально.',
+  successDescPassedHeic:
+    'Создана новая чистая копия изображения. Личные метаданные исходного HEIC/HEIF не перенесены в экспорт.',
+  successDescFail: 'BURAN не подтверждает чистую копию, если проверка не прошла.',
+  successBefore: 'До',
+  successAfter: 'После',
+  successRowFormat: 'Формат',
+  successRowFound: 'Личных метаданных найдено',
+  successRowRemaining: 'Личных метаданных осталось',
+  successRowColour: 'Технические цветовые данные',
+  successRowOrientation: 'Ориентация',
+  successOrientationApplied: 'физически применена',
+  successRowPdfPages: 'Страницы PDF',
+  successPdfPagesPreserved: 'сохранены',
+  successPdfPagesNot: 'не подтверждены',
+  successRowHash: 'SHA-256 чистого файла',
+  successRowLocal: 'Обработано локально',
+  successLocalYes: 'Да, в браузере',
+  successLimitTitle: 'Что BURAN не может проверить',
+  successCertButton: 'Скачать сертификат PDF',
+  successCertButtonAria: 'Скачать сертификат PDF',
+  successDownloadAria: 'Скачать чистую копию файла',
+  successReset: 'Другой файл',
+  successOfficeProps: 'Свойства Office',
+  successOfficePropsRemoved: 'удалены',
+  successOfficePropsNot: 'не подтверждено',
+  successOfficeCommentAuthors: 'Авторы комментариев',
+  successOfficeCommentAuthorsAnon: 'заменены нейтральным placeholder: Anonymous',
+  successOfficeRevisions: 'История правок',
+  successOfficeRevisionsCleaned: 'исходные авторы и даты удалены',
+  successHeicExport: 'HEIC/HEIF экспорт',
+  successHeicSourceMeta: 'Метаданные источника',
+  successHeicSourceNotTransferred: 'не перенесены',
+  successHeicColour: 'Цвет',
+  successZipTimestamps: 'Archive timestamps',
+  successZipTimestampsNeutralised: 'нейтрализованы',
+  successZipSupported: 'Поддерживаемые файлы',
+  successZipSupportedVerified: 'очищены и проверены',
+  successZipUnsupported: 'Неподдерживаемые файлы',
+  successZipUnsupportedUnchanged: 'сохранены без изменений',
+  successNotConfirmed: 'не подтверждено',
+
+  // --- ScanReport screen ---
+  scanReportTitle: 'Отчёт BURAN',
+  scanReportLocal: 'Локально',
+  scanStateSupported: 'Поддерживается',
+  scanStatePartial: 'Частично поддерживается',
+  scanDeviceNote: 'Обработка только на вашем устройстве',
+  scanResetFile: 'Другой файл',
+  scanLimitsTitle: 'Что BURAN не может проверить',
+  scanTechDetailsTitle: 'Технические детали',
+  scanTechNoneFound: 'Поддерживаемых технических находок нет.',
+  scanCleanAria: 'Удалить метаданные из файла',
+  scanNoUpload: 'Файл не будет загружен на сервер.',
+  scanZipTreeAria: 'Дерево ZIP-архива',
+  scanZipDefaultName: 'archive.zip',
+  scanZipEntryTraces: 'следов · будет очищен',
+  scanZipEntryUnchanged: 'Сохранён без изменений — BURAN пока не анализирует метаданные этого формата.',
+
+  // --- ScanReport: concrete found values ---
+  scanFoundValuesTitle: 'Что BURAN нашёл в файле',
+  scanFoundValuesNote: 'Эти конкретные значения встроены в файл и будут удалены.',
+  scanCatTitle: 'Заголовок документа',
+  scanCatIdentifier: 'Идентификаторы',
+  scanCatCustom: 'Пользовательские поля',
+  scanCatThumbnail: 'Встроенная миниатюра',
+  scanCatComment: 'Комментарий',
+  scanCatOther: 'Прочие метаданные',
+
+  // --- Finding severity descriptions (shown per technical finding) ---
+  scanDescHigh: 'Может раскрыть конфиденциальную информацию.',
+  scanDescMedium: 'Может связать файл с источником или устройством.',
+  scanDescLow: 'Техническая информация, маловероятно раскрытие личных данных.',
+
+  // --- Trust result (lib/trust-result.ts) ---
+  trustSummaryFoundPrefix: 'Найдено',
+  trustSummaryFoundSuffix: 'метаданных',
+  trustSummaryNoneFound: 'Поддерживаемых личных метаданных не найдено',
+  trustSummaryRescan: 'Файл уже проверен. Дополнительная очистка не нужна.',
+  trustFoundTitle: 'Что найдено',
+  trustRemovedTitle: 'Что будет удалено',
+  trustPreservedTitle: 'Что сохранится',
+  trustVerifiedTitle: 'Что проверит BURAN',
+  trustTraceWord1: 'след',
+  trustTraceWord2: 'следа',
+  trustTraceWord5: 'следов',
+
+  // before/after summary
+  trustBaFilesWord: 'файлов',
+  trustBaMetadataTrace: 'metadata trace',
+  trustBaZipCleaned: 'файлов очищено и проверено',
+  trustBaZipUnchanged: 'файла сохранены без изменений',
+  trustBaPersonalTraces: 'личных следов',
+  trustBaSupportedMetadata: 'поддерживаемые метаданные',
+  trustBaRemainingTraces: 'поддерживаемых личных следов',
+
+  // success limitations
+  trustLimitVisible: 'Видимый текст, лица, номера, QR-коды и содержимое документа могут по-прежнему раскрывать личность.',
+  trustLimitWatermark: 'Водяные знаки, стеганография и секреты внутри содержимого не входят в область очистки метаданных.',
+  trustLimitZipUnsupported: 'Неподдерживаемые файлы внутри архива сохранены без изменений и не проверялись на метаданные.',
+
+  // compact category labels
+  trustCatAuthor: 'автор',
+  trustCatDates: 'даты',
+  trustCatApp: 'приложение',
+  trustCatGps: 'GPS',
+  trustCatDevice: 'камера',
+  trustCatContainers: 'контейнеры',
+
+  // summary risk text
+  trustRiskZip: 'Архив может раскрывать timestamps, комментарии ZIP и метаданные поддерживаемых файлов внутри.',
+  trustRiskHeic: 'Может содержать EXIF/XMP/ICC контейнеры, GPS, данные камеры и даты. BURAN создаст новый чистый JPEG/PNG экспорт.',
+  trustRiskPdf: 'Могут раскрывать автора документа, приложение, даты, комментарии и идентификаторы.',
+  trustRiskOffice: 'Могут раскрывать автора, компанию, историю документа, комментарии и свойства пакета.',
+  trustRiskImage: 'Могут раскрывать место съёмки, устройство, автора и историю файла.',
+
+  // found items
+  trustFoundZipArchiveMeta: 'Метаданные архива:',
+  trustFoundZipTimestamps: 'timestamps',
+  trustFoundZipCommentFound: ', ZIP comment найден',
+  trustFoundZipSupported: 'Поддерживаемые файлы для очистки:',
+  trustFoundZipUnsupported: 'Неподдерживаемые файлы:',
+  trustFoundZipNested: 'Вложенные ZIP:',
+  trustFoundHeicSupported: 'HEIC / HEIF поддерживается как чистый экспорт.',
+  trustFoundHeicContainers: 'Контейнеры:',
+  trustFoundHeicExportPrefix: 'Экспорт будет создан как',
+  trustFoundHeicExportSuffix: '.',
+  trustFoundNoPersonal: 'Поддерживаемые личные метаданные не обнаружены.',
+
+  // category human text
+  trustCatHumanGps: 'Геолокация и координаты съёмки',
+  trustCatHumanDevice: 'Устройство, камера или объектив',
+  trustCatHumanAuthor: 'Автор, владелец или copyright',
+  trustCatHumanDates: 'Даты создания, изменения или истории файла',
+  trustCatHumanApp: 'Приложение, компания или редактор',
+  trustCatHumanContainers: 'EXIF / XMP / IPTC / служебные контейнеры',
+
+  // removal items
+  trustRemoveZip1: 'Комментарий ZIP и timestamps архива',
+  trustRemoveZip2: 'Поддерживаемые метаданные внутри cleanable файлов',
+  trustRemoveZip3: 'Идентифицирующие extra fields и host-атрибуты, где они доступны',
+  trustRemoveHeic1: 'Исходные EXIF / GPS / XMP / авторские поля не переносятся',
+  trustRemoveHeic2: 'Создаётся новый JPEG/PNG из декодированных пикселей',
+  trustRemoveHeic3: 'Исходное имя файла и HEIC контейнеры не копируются',
+  trustRemovePdf1: 'Свойства документа и XMP',
+  trustRemovePdf2: 'Авторские поля комментариев',
+  trustRemovePdf3: 'Поддерживаемые идентификаторы документа',
+  trustRemoveOffice1: 'Свойства документа и пользовательские поля',
+  trustRemoveOffice2: 'Исходные авторы комментариев и правок',
+  trustRemoveOffice3: 'Метаданные встроенных поддерживаемых изображений',
+  trustRemoveOffice4: 'ZIP timestamps пакета',
+  trustRemoveImage1: 'EXIF / GPS / XMP / IPTC / комментарии',
+  trustRemoveImage2: 'Авторские и временные поля',
+  trustRemoveImage3: 'Встроенные previews, если они найдены',
+
+  // preserved items
+  trustPreserveZip1: 'Имена файлов и папок внутри архива',
+  trustPreserveZip2: 'Неподдерживаемые файлы байт-в-байт без изменений',
+  trustPreserveZip3: 'Видимое содержимое поддерживаемых файлов',
+  trustPreserveHeic1: 'Видимое изображение после декодирования',
+  trustPreserveHeic2: 'Размеры и визуальная ориентация',
+  trustPreserveHeic3: 'Прозрачность через PNG, если она требуется',
+  trustPreservePdf1: 'Страницы, текст, изображения и основная структура документа',
+  trustPreservePdf2: 'Ссылки, формы и видимые комментарии в пределах существующей поддержки',
+  trustPreserveOffice1: 'Текст, таблицы, формулы, слайды, изображения и ссылки',
+  trustPreserveOffice2: 'Содержимое комментариев и tracked content',
+  trustPreserveImage1: 'Пиксели изображения',
+  trustPreserveImage2: 'Размеры изображения',
+  trustPreserveImage3: 'ICC / цветопередача',
+  trustPreserveImageTransparency: 'Прозрачность',
+  trustPreserveImageOrientation: 'Визуальная ориентация',
+
+  // verification items
+  trustVerifyZip1: 'Архив открывается заново',
+  trustVerifyZip2: 'Timestamps и ZIP comment нейтрализованы',
+  trustVerifyZip3: 'Поддерживаемые вложенные файлы повторно просканированы',
+  trustVerifyZip4: 'Неподдерживаемые файлы остались байт-в-байт теми же',
+  trustVerifyHeic1: 'Экспорт открывается как JPEG или PNG',
+  trustVerifyHeic2: 'JPEG/PNG экспорт не содержит поддерживаемых личных метаданных',
+  trustVerifyHeic3: 'Источник HEIC не покидал браузер и не перезаписывался',
+  trustVerifyPdf1: 'PDF открывается заново',
+  trustVerifyPdf2: 'Поддерживаемые metadata-поля отсутствуют',
+  trustVerifyPdf3: 'Количество страниц и геометрия сохранены',
+  trustVerifyOffice1: 'Пакет Office открывается заново',
+  trustVerifyOffice2: 'Свойства документа удалены',
+  trustVerifyOffice3: 'Служебные авторы комментариев нейтрализованы',
+  trustVerifyOffice4: 'Структура Office-документа сохранена',
+  trustVerifyImage1: 'Файл открывается как тот же формат',
+  trustVerifyImage2: 'Поддерживаемые личные метаданные отсутствуют',
+  trustVerifyImage3: 'Технические цветовые данные проверены',
+
+  // limitation items
+  trustLimitItemBase: 'BURAN не меняет видимый контент и не проверяет водяные знаки, QR-коды, лица или стеганографию.',
+  trustLimitItemZip: 'Неподдерживаемые файлы внутри архива сохраняются без изменений и не считаются очищенными.',
+  trustLimitItemHeic: 'HEIC/HEIF обрабатывается как новый чистый экспорт, а не byte-preserving переписывание исходного файла. Цвет нормализуется браузерным декодером.',
+  trustLimitItemOffice: 'Исходные авторы удалены. В отдельных служебных полях формат Office требует нейтральный placeholder: Anonymous.',
+
+  // preserved success line
+  trustPreservedLineOrientation: 'Ориентация JPEG физически применена',
+  trustPreservedLineHeicVerified: 'экспорт проверен',
+  trustPreservedLineIcc: 'ICC-профиль сохранён',
+  trustPreservedLinePdf: 'Страницы и структура проверены',
+  trustPreservedLineOffice: 'Документная структура проверена',
+  trustPreservedLineTechnical: 'Технические данные сохранены',
+
+  // --- BlockedState reason titles ---
+  blockedEncrypted: 'Файл защищён',
+  blockedSigned: 'Файл подписан',
+  blockedXfa: 'PDF с XFA-формами',
+  blockedPortfolio: 'PDF-портфолио',
+  blockedAttachments: 'Есть вложения',
+  blockedTooManyPages: 'Слишком много страниц',
+  blockedTooLarge: 'Файл слишком большой',
+  blockedMalformed: 'Не удалось разобрать файл',
+  blockedMacro: 'Документ с макросами',
+  blockedEmbeddedObject: 'Встроенные объекты',
+  blockedCustomXml: 'Пользовательские XML-данные',
+  blockedThreadedComments: 'Потоковые комментарии',
+  blockedUnsupportedMedia: 'Неподдерживаемое изображение',
+  blockedTooManyEntries: 'Слишком много элементов',
+  blockedZipBomb: 'Подозрительный архив',
+  blockedUnsupportedPackage: 'Неподдерживаемый документ',
+  blockedMultiVolume: 'Многотомный ZIP',
+  blockedTooDeep: 'Слишком глубокая вложенность',
+  blockedEntryTooLarge: 'Файл внутри архива слишком большой',
+  blockedPathTraversal: 'Небезопасный путь в архиве',
+  blockedDuplicatePath: 'Конфликтующие пути в архиве',
+  blockedVerificationFailed: 'Проверка архива не пройдена',
+  blockedNestedCleanFailed: 'Вложенный файл не очищен',
+  blockedTooManyImages: 'Несколько изображений',
+  blockedNoPrimaryImage: 'Нет основного изображения',
+  blockedAuxiliaryImage: 'Дополнительное изображение',
+  blockedDepthMap: 'Depth map',
+  blockedAnimation: 'HEIC/HEIF sequence',
+  blockedUnsupportedColour: 'Неподдерживаемый цвет',
+  blockedDecodeFailed: 'Не удалось декодировать',
+  blockedResourceLimit: 'Слишком сложный файл',
+  blockedFileUnchanged: 'Файл не изменён. ',
+
+  // --- PreservedInfo ---
+  preservedWillKeep: 'Сохранятся',
+  preservedYes: 'Да',
+  preservedNo: 'Нет',
+
+  // --- Badge severity short labels ---
+  badgeHigh: 'Важно',
+  badgeMedium: 'Средне',
+  badgeLow: 'Низкое',
+
+  // --- UnsupportedState roadmap label ---
+  unsupportedRoadmapLabel: 'План развития: ',
+
+  // --- ErrorState ---
+  errorRetry: 'Попробовать другой файл',
+
+  // --- Clean certificate generator (certificate.ts) ---
+  certTagline: 'ЛОКАЛЬНАЯ ЗАЩИТА МЕТАДАННЫХ',
+  certTitle: 'СЕРТИФИКАТ ОЧИСТКИ МЕТАДАННЫХ',
+  certSubtitle: 'ЛОКАЛЬНАЯ ОЧИСТКА И НЕЗАВИСИМАЯ ПРОВЕРКА',
+  certStatementLine1: 'Настоящим удостоверяется, что файл формата {type}',
+  certStatementLine2: 'очищен от персональных метаданных и независимо проверен локально.',
+  certStatFound: 'НАЙДЕНО',
+  certStatRemoved: 'УДАЛЕНО',
+  certStatRemaining: 'ОСТАЛОСЬ',
+  certStatVerified: 'ПРОВЕРЕНО',
+  certStatFailed: 'НЕ ПРОЙДЕНО',
+  certShaLabel: 'SHA-256 ОТПЕЧАТОК ЧИСТОГО ФАЙЛА',
+  certDateLabel: 'Дата и время проверки: {date}',
+  certLocalNote: 'Обработано полностью локально в этом браузере. Файл не загружался на сервер.',
+  certLocalNotUnconfirmed: 'Локальная обработка не подтверждена.',
+  certSignName: 'BURAN Verification Engine',
+  certSignCaption: 'Автоматическая локальная подпись',
+  certFooter1:
+    'Область действия: сертификат не охватывает видимый контент, водяные знаки, стеганографию, QR-коды, лица, текст на изображениях и секреты внутри содержимого документа.',
+  certFooter2: 'Сгенерировано локально в BURAN — исходный файл не загружался и не сохранялся на сервере.',
+  certPdfSubject: 'Сертификат локальной очистки метаданных',
+  certCtxPdf: 'PDF · сохранено страниц: {pages}',
+  certCtxPdfStructure: ' · структура документа проверена',
+  certCtxOfficePrefix: 'Office · ',
+  certCtxOfficePropsRemoved: 'свойства документа удалены',
+  certCtxOfficePropsNot: 'свойства не подтверждены',
+  certCtxOfficeCommentsAnon: 'авторы комментариев анонимизированы',
+  certCtxOfficeRevisions: 'история правок очищена',
+  certCtxOfficeStructure: 'структура проверена',
+  certCtxZip: 'Архив · очищено файлов: {cleaned} · сохранено без изменений: {preserved}',
+  certCtxHeic: 'HEIC/HEIF · экспорт в {format} · метаданные источника не перенесены',
+  certCtxImageOrientation: 'ориентация физически применена',
+  certCtxImageReencoded: 'пересобрана чистая JPEG-копия',
+  certCtxImageColour: 'цветовой профиль сохранён',
+} as const;
+
+// Russian is the structural schema source. Widen its `as const` literal types so
+// every locale carries its own text while sharing the exact same key shape.
+type Widen<T> = {
+  -readonly [K in keyof T]: T[K] extends readonly string[] ? readonly string[] : string;
+};
+export type Strings = Widen<typeof strings>;
+export type TranslationKey = keyof Strings;
+
+export default strings;

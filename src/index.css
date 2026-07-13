@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-buran-bg: #ffffff;
+  --color-buran-surface: #ffffff;
+  --color-buran-text: #2b2b2b;
+  --color-buran-text-secondary: #6b6b6b;
+  --color-buran-border: #e5e5e5;
+  --color-buran-ice: #9c6b3f;
+  --color-buran-ice-dark: #7a4f2c;
+  --color-buran-ice-light: #f4ebe0;
+  --color-buran-amber: #c08a3e;
+  --color-buran-amber-light: #fbf3e7;
+  --color-buran-green: #5a7d4f;
+  --color-buran-green-light: #eef3ea;
+  --color-buran-red: #c0473f;
+  --color-buran-red-light: #fbeeed;
+  --color-buran-mascot: #b88a52;
+  --color-buran-mascot-dark: #8a6336;
+  --color-buran-mascot-light: #f0e1cc;
+  --font-family-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+html { scroll-behavior: smooth; text-size-adjust: 100%; }
+body { margin: 0; background: #fff; }
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(60,141,191,0.35); }
+  50% { box-shadow: 0 0 0 14px rgba(60,141,191,0); }
+}
+@keyframes bone-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--bone-rotate)); }
+  35% { transform: translate3d(var(--bone-x), var(--bone-y), 0) rotate(calc(var(--bone-rotate) + 16deg)); }
+  70% { transform: translate3d(calc(var(--bone-x) * -0.45), calc(var(--bone-y) * 0.65), 0) rotate(calc(var(--bone-rotate) - 10deg)); }
+}
+/* Calm, non-bouncy entrances for the "serious" result screens */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rise {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-bob { animation: bob 2.5s ease-in-out infinite; }
+.animate-pop-in { animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
+.animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+.animate-rise { animation: rise 0.35s ease-out forwards; }
+.animate-slide-up-delay { opacity: 0; animation: slide-up 0.5s ease-out 0.1s forwards; }
+.animate-slide-up-delay-2 { opacity: 0; animation: slide-up 0.5s ease-out 0.2s forwards; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+@media print {
+  body * { visibility: hidden; }
+  #buran-certificate, #buran-certificate * { visibility: visible; }
+  #buran-certificate { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+}
