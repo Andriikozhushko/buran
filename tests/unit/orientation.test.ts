@@ -133,16 +133,15 @@ describe('JPEG orientation cleaning', () => {
     expect(orientation).toBe(1);
   });
 
-  it('scan result includes orientation in findings for non-default values', () => {
+  it('keeps non-default orientation out of personal metadata findings', () => {
     const buf = load('orientation-6.jpg');
     const result = scanJpeg(buf);
 
-    // Non-default orientation should generate a finding
     const orientationFinding = result.findings.find(
       (f) => f.label === 'Image orientation',
     );
-    expect(orientationFinding).toBeDefined();
-    expect(orientationFinding!.value).toContain('6');
+    expect(result.orientation).toBe(6);
+    expect(orientationFinding).toBeUndefined();
   });
 
   it('scan result does not add orientation finding for default orientation 1', () => {

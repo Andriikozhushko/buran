@@ -554,6 +554,7 @@ function scanJpeg(buffer: ArrayBuffer): ScanResult {
 
         const exifFindings = parseExifIfd(view, tiffStart, tiffStart + ifdOffset, littleEndian, 'IFD0');
         for (const f of exifFindings) {
+          if (f.tagId === 0x0112) continue; // Display orientation is technical, not personal metadata.
           findings.push({
             category: f.category as MetadataFinding['category'],
             field: `EXIF:${f.tagName}`,
@@ -565,18 +566,6 @@ function scanJpeg(buffer: ArrayBuffer): ScanResult {
         }
       }
     }
-  }
-
-  // If orientation is non-default, add a prominent finding
-  if (orientation && orientation !== 1) {
-    findings.push({
-      category: 'other',
-      field: 'EXIF:Orientation',
-      label: 'Image orientation',
-      value: `Value ${orientation}`,
-      severity: 'medium',
-      description: '',
-    });
   }
 
   // Detect XMP
@@ -905,8 +894,8 @@ export const jpegHandler: FormatHandler = {
     return scanJpeg(buffer);
   },
   clean(buffer: ArrayBuffer): ArrayBuffer {
-    // Strip metadata; orientation bytes are part of EXIF which gets removed.
-    // Physical orientation rotation is handled by the main thread via canvas when needed.
+    // Default cleanup removes all EXIF. The worker can retain a minimal
+    // orientation-only segment when it is needed for safe display.
     return cleanJpeg(buffer);
   },
   verify(original: ScanResult, cleanBuffer: ArrayBuffer): VerificationResult {
