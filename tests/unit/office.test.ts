@@ -12,6 +12,7 @@ import {
 } from '../../src/lib/formats/office';
 import { detectFormat } from '../../src/lib/formats/detector';
 import { NEUTRAL_DATE } from '../../src/lib/formats/office/package';
+import { readTagText } from '../../src/lib/formats/office/shared';
 import type { OfficeScanData } from '../../src/lib/formats/office/types';
 
 const FIXTURES = join(import.meta.dirname || __dirname, '..', 'fixtures');
@@ -60,6 +61,28 @@ describe('Office detection', () => {
     expect(detectFormat(load('office-sample.docx'))).toBe('zip');
   });
 
+  it('routes a renamed OOXML package to the Office pipeline by content (D3)', async () => {
+    const { getDescriptor } = await import('../../src/lib/formats/registry');
+    const buffer = load('office-sample.docx');
+    // The registry sees only ZIP magic; the filename lies about the format.
+    const outcome = await getDescriptor('zip').scan(buffer, 'totally-a-plain-archive.zip', buffer.byteLength);
+    if (!('result' in outcome)) throw new Error('renamed OOXML unexpectedly blocked or errored');
+    expect(outcome.result.format).toBe('docx');
+    expect(outcome.result.office).toBeDefined();
+  });
+
+  it('classifies a legacy CFB document honestly, not as encrypted (D1)', async () => {
+    const { detectScanFormat } = await import('../../src/lib/formats/registry');
+    // Legacy .doc routes to the Office scanner via the CFB sniff...
+    expect(detectScanFormat(load('office-legacy.doc'))).toBe('docx');
+    // ...which reports it as legacy, while true encrypted stays encrypted.
+    const legacy = await scanOffice(load('office-legacy.doc'));
+    const encrypted = await scanOffice(load('office-encrypted.docx'));
+    if (!('blocked' in legacy) || !('blocked' in encrypted)) throw new Error('CFB fixtures must block');
+    expect(legacy.reason).toBe('legacy-office');
+    expect(encrypted.reason).toBe('encrypted');
+  });
+
   it('classifies docx/xlsx/pptx from package content', async () => {
     const d = await loadPackage(load('office-sample.docx'));
     const x = await loadPackage(load('office-sample.xlsx'));
@@ -72,6 +95,12 @@ describe('Office detection', () => {
 });
 
 describe('Office scanner finds metadata', () => {
+  it('reads property tags when a valid OOXML producer uses different namespace prefixes', () => {
+    const core = '<dublin:creator>Andrii K</dublin:creator><properties:lastModifiedBy>Andrii K</properties:lastModifiedBy>';
+    expect(readTagText(core, 'dc:creator')).toBe('Andrii K');
+    expect(readTagText(core, 'cp:lastModifiedBy')).toBe('Andrii K');
+  });
+
   it('docx: core/app/custom, comment author, revisions, embedded image', async () => {
     const data = await expectData('office-sample.docx');
     expect(data.format).toBe('docx');
@@ -84,6 +113,7 @@ describe('Office scanner finds metadata', () => {
     expect(fields).toContain('docx:commentAuthor');
     expect(fields).toContain('docx:revisionAuthor');
     expect(fields).toContain('docx:rsid');
+    expect(fields).toContain('office:zipTimestamps');
     expect(data.embeddedImages.length).toBe(1);
     expect(data.hasComments).toBe(true);
     expect(data.hasRevisions).toBe(true);
@@ -118,6 +148,15 @@ describe('Office sanitiser + verifier', () => {
       expect(v.remainingUnsupportedMetadataRisk).toEqual([]);
     });
   }
+
+  it('re-scanning a cleaned package reports no container-timestamp finding', async () => {
+    for (const name of ['office-sample.docx', 'office-sample.xlsx', 'office-sample.pptx']) {
+      const clean = await sanitizeOffice(load(name));
+      const rescan = await scanOffice(clean);
+      if ('blocked' in rescan) throw new Error(`${name}: cleaned package unexpectedly blocked`);
+      expect(rescan.data.findings.map((f) => f.field)).not.toContain('office:zipTimestamps');
+    }
+  });
 
   it('removes core/app/custom parts and their content-type/relationship entries', async () => {
     for (const name of ['office-sample.docx', 'office-sample.xlsx', 'office-sample.pptx']) {
@@ -218,17 +257,35 @@ describe('Office sanitiser + verifier', () => {
     expect(text).not.toContain('BURAN');
     expect(text.toLowerCase()).not.toContain('office-sample');
   });
+
+  it('offers normal and aggressive cleanup modes for custom XML documents', async () => {
+    const original = await expectData('office-customxml.docx');
+
+    const normal = await sanitizeOffice(load('office-customxml.docx'));
+    const normalPackage = await JSZip.loadAsync(normal);
+    expect(Object.keys(normalPackage.files)).toContain('customXml/item1.xml');
+    const normalVerification = await verifyOffice(original, normal);
+    expect(normalVerification.verificationPassed).toBe(true);
+    expect(normalVerification.customXmlRemoved).toBe(false);
+
+    const aggressive = await sanitizeOffice(load('office-customxml.docx'), { removeCustomXml: true });
+    const aggressivePackage = await JSZip.loadAsync(aggressive);
+    expect(Object.keys(aggressivePackage.files).some((name) => name.startsWith('customXml/'))).toBe(false);
+    const aggressiveVerification = await verifyOffice(original, aggressive, { removeCustomXml: true });
+    expect(aggressiveVerification.verificationPassed).toBe(true);
+    expect(aggressiveVerification.customXmlRemoved).toBe(true);
+  });
 });
 
 describe('Office blocking', () => {
   const cases: Array<[string, string]> = [
     ['office-macro.docm', 'macro'],
     ['office-ole.docx', 'embedded-object'],
-    ['office-customxml.docx', 'custom-xml'],
     ['office-threaded.docx', 'threaded-comments'],
     ['office-signed.docx', 'signed'],
     ['office-threaded.xlsx', 'threaded-comments'],
     ['office-encrypted.docx', 'encrypted'],
+    ['office-legacy.doc', 'legacy-office'],
     ['office-malformed.docx', 'malformed'],
   ];
 
@@ -242,6 +299,14 @@ describe('Office blocking', () => {
       }
     });
   }
+
+  it('inspects custom XML documents and records their additional cleanup risk', async () => {
+    const result = await scanOffice(load('office-customxml.docx'));
+    if ('blocked' in result) throw new Error('custom XML document should be available for inspection');
+    expect(result.data.hasCustomXml).toBe(true);
+    expect(result.data.findings.map((f) => f.field)).toContain('core:dc:creator');
+    expect(result.data.unsupportedMetadataRisk).toEqual(['buran:risk/office.custom-xml-preserved']);
+  });
 
   it('blocks zip-bomb-like packages (suspicious compression ratio)', async () => {
     const zip = new JSZip();

@@ -15,6 +15,7 @@ export type OfficeFormat = 'docx' | 'xlsx' | 'pptx';
 /** Reasons an Office package is blocked from sanitisation. */
 export type OfficeBlockReason =
   | 'encrypted'
+  | 'legacy-office'
   | 'signed'
   | 'macro'
   | 'embedded-object'
@@ -37,7 +38,7 @@ export interface OfficeBlock {
 /** A supported embedded raster image found in the package media folder. */
 export interface EmbeddedImage {
   path: string;
-  format: 'jpeg' | 'png' | 'webp';
+  format: 'jpeg' | 'png' | 'webp' | 'tiff' | 'gif' | 'bmp';
 }
 
 /** Result of scanning a supported (non-blocked) Office package. */
@@ -54,6 +55,8 @@ export interface OfficeScanData {
   hasRevisions: boolean;
   entryCount: number;
   uncompressedSize: number;
+  /** The package has arbitrary custom XML parts in addition to document properties. */
+  hasCustomXml: boolean;
   /** Honest list of metadata surfaces BURAN cannot fully guarantee removal of. */
   unsupportedMetadataRisk: string[];
 }
@@ -70,6 +73,8 @@ export interface OfficeVerification {
   revisionMetadataRemoved: boolean;
   embeddedImagesVerified: number;
   zipTimestampsNormalised: boolean;
+  /** Whether custom XML parts were removed when aggressive cleanup was selected. */
+  customXmlRemoved: boolean;
   verificationPassed: boolean;
   remainingUnsupportedMetadataRisk: string[];
 }

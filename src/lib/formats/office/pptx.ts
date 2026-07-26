@@ -37,7 +37,8 @@ export async function scanPptx(zip: JSZip): Promise<OfficePartScan> {
 
   const authorsXml = await readText(zip, AUTHORS_PART);
   if (authorsXml) {
-    const names = [...new Set(collectAttr(authorsXml, 'name'))].filter(Boolean);
+    // BURAN's own neutral placeholder carries no personal information.
+    const names = [...new Set(collectAttr(authorsXml, 'name'))].filter((n) => n && n !== ANON_AUTHOR);
     const initials = [...new Set(collectAttr(authorsXml, 'initials'))].filter(Boolean);
     if (names.length) {
       hasComments = true;

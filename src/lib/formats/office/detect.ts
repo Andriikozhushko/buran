@@ -11,9 +11,9 @@ import type { LoadedPackage } from './package';
 import type { EmbeddedImage, OfficeBlock, OfficeFormat } from './types';
 
 /** Supported embedded raster image extensions (cleaned via the image core). */
-const SUPPORTED_IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'webp']);
+const SUPPORTED_IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'webp', 'tif', 'tiff', 'gif', 'bmp']);
 /** Metadata-bearing image formats BURAN cannot yet verify-clean → block. */
-const BLOCK_IMAGE_EXT = new Set(['tif', 'tiff', 'bmp', 'gif', 'heic', 'heif', 'jp2', 'j2k']);
+const BLOCK_IMAGE_EXT = new Set(['heic', 'heif', 'jp2', 'j2k']);
 
 /** "zip" = OOXML (PK), "cfb" = OLE compound (encrypted/legacy), null = neither. */
 export function detectOfficeContainer(buffer: ArrayBuffer): 'zip' | 'cfb' | null {
@@ -33,6 +33,42 @@ export function detectOfficeContainer(buffer: ArrayBuffer): 'zip' | 'cfb' | null
 
 function officeBlock(reason: OfficeBlock['reason'], message: string): OfficeBlock {
   return { blocked: true, reason, message };
+}
+
+/** Search raw bytes for a UTF-16LE encoded stream name (CFB directory entries). */
+function hasUtf16Name(bytes: Uint8Array, name: string): boolean {
+  const needle = new Uint8Array(name.length * 2);
+  for (let i = 0; i < name.length; i++) {
+    needle[i * 2] = name.charCodeAt(i) & 0xff;
+    needle[i * 2 + 1] = name.charCodeAt(i) >> 8;
+  }
+  outer: for (let i = 0; i + needle.length <= bytes.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (bytes[i + j] !== needle[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Classify an OLE/CFB compound file. The container is shared by encrypted
+ * OOXML packages and by legacy binary Office (.doc/.xls/.ppt) — reporting
+ * both as "encrypted" would be a lie for every plain legacy document, so the
+ * directory stream names are sniffed to tell them apart.
+ */
+export function classifyCfb(buffer: ArrayBuffer): 'encrypted' | 'legacy-office' | 'unknown' {
+  const bytes = new Uint8Array(buffer);
+  if (hasUtf16Name(bytes, 'EncryptionInfo') || hasUtf16Name(bytes, 'EncryptedPackage')) return 'encrypted';
+  if (
+    hasUtf16Name(bytes, 'WordDocument') ||
+    hasUtf16Name(bytes, 'Workbook') ||
+    hasUtf16Name(bytes, 'Book') ||
+    hasUtf16Name(bytes, 'PowerPoint Document')
+  ) {
+    return 'legacy-office';
+  }
+  return 'unknown';
 }
 
 /** Identify the OOXML application type from the package parts. */
@@ -62,6 +98,9 @@ export function collectEmbeddedImages(entryNames: string[]): EmbeddedImage[] {
     if (e === 'png') images.push({ path: name, format: 'png' });
     else if (e === 'jpg' || e === 'jpeg') images.push({ path: name, format: 'jpeg' });
     else if (e === 'webp') images.push({ path: name, format: 'webp' });
+    else if (e === 'tif' || e === 'tiff') images.push({ path: name, format: 'tiff' });
+    else if (e === 'gif') images.push({ path: name, format: 'gif' });
+    else if (e === 'bmp') images.push({ path: name, format: 'bmp' });
   }
   return images;
 }
@@ -70,7 +109,10 @@ export function collectEmbeddedImages(entryNames: string[]): EmbeddedImage[] {
  * Detect blocked structures in a loaded package. Returns the first matching
  * {@link OfficeBlock}, or null if the package is safe to sanitise.
  */
-export function detectBlockedStructures(loaded: LoadedPackage): OfficeBlock | null {
+export function detectBlockedStructures(
+  loaded: LoadedPackage,
+  options: { allowCustomXmlForInspection?: boolean } = {},
+): OfficeBlock | null {
   const names = loaded.entryNames;
   const has = (pred: (n: string) => boolean) => names.some(pred);
 
@@ -107,7 +149,7 @@ export function detectBlockedStructures(loaded: LoadedPackage): OfficeBlock | nu
   }
 
   // Custom XML parts that cannot be classified as metadata-only.
-  if (has((n) => n.startsWith('customXml/'))) {
+  if (!options.allowCustomXmlForInspection && has((n) => n.startsWith('customXml/'))) {
     return officeBlock(
       'custom-xml',
       'Документ содержит пользовательские XML-данные (customXml). BURAN не может безопасно классифицировать их как метаданные, поэтому файл не был изменён.',

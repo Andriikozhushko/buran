@@ -1,6 +1,7 @@
 import type { MetadataFinding } from '../types';
+import { personalFindingCount } from '../types';
 import type { ZipBlock, ZipScanData } from './types';
-import { archiveComment, entryExtraFieldCount, entryHasExternalAttributes, extensionOf, loadZip, readEntryBytes, zipBlock } from './safety';
+import { archiveComment, entryExtraFieldCount, entryHasExternalAttributes, extensionOf, isNeutralDate, loadZip, readEntryBytes, zipBlock } from './safety';
 import { detectNestedFormat, scanNestedSupported, toArrayBuffer } from './recursive';
 
 function finding(field: string, label: string, value: string | null, severity: MetadataFinding['severity'], description: string): MetadataFinding {
@@ -27,7 +28,9 @@ export async function scanZip(buffer: ArrayBuffer, depth = 0): Promise<ZipBlock 
 
   for (const name of loaded.entryNames) {
     const entry = loaded.zip.files[name];
-    if (entry.date) container.entryTimestamps++;
+    // JSZip always materialises a date, so count only timestamps that differ
+    // from the neutral value — a cleaned archive re-scanned must show zero.
+    if (!isNeutralDate(entry.date)) container.entryTimestamps++;
     if (entryExtraFieldCount(entry) > 0) container.extraFields += entryExtraFieldCount(entry);
     if (entryHasExternalAttributes(entry)) {
       container.externalAttributeFields++;
@@ -50,7 +53,7 @@ export async function scanZip(buffer: ArrayBuffer, depth = 0): Promise<ZipBlock 
         path: name,
         format: 'zip',
         size: bytes.byteLength,
-        findingsCount: nested.data.findings.length,
+        findingsCount: personalFindingCount(nested.data.findings),
         status: 'ready',
         preserved: 'Имена, структура и поддерживаемое содержимое вложенного ZIP сохраняются.',
         nestedDepth: depth,
@@ -66,7 +69,7 @@ export async function scanZip(buffer: ArrayBuffer, depth = 0): Promise<ZipBlock 
         path: name,
         format: nested.scan.format,
         size: bytes.byteLength,
-        findingsCount: nested.scan.findings.length,
+        findingsCount: personalFindingCount(nested.scan.findings),
         status: 'ready',
         preserved: preservedText(nested.scan.format),
         nestedDepth: depth,
@@ -89,8 +92,11 @@ export async function scanZip(buffer: ArrayBuffer, depth = 0): Promise<ZipBlock 
   if (container.archiveCommentFound) findings.push(finding('zip:comment', 'ZIP comment', 'Present', 'medium', ''));
   if (container.externalAttributeFields > 0) findings.push(finding('zip:externalAttributes', 'ZIP external attributes', String(container.externalAttributeFields), 'low', ''));
   if (container.extraFields > 0) findings.push(finding('zip:extraFields', 'ZIP extra fields', String(container.extraFields), 'medium', ''));
-  if (supportedEntries.length > 0) findings.push(finding('zip:supportedEntries', 'Supported files inside the archive', String(supportedEntries.length), 'medium', ''));
-  if (unsupportedEntries.length > 0) findings.push(finding('zip:unsupportedEntries', 'Unsupported files', String(unsupportedEntries.length), 'low', ''));
+  // Entry counts are structure, not removable metadata — the archive tree and
+  // the limitations section already disclose them. Findings list only what
+  // cleaning will actually remove, so a cleaned archive re-scans as clean.
+  const nestedTraceCount = supportedEntries.reduce((sum, e) => sum + e.findingsCount, 0);
+  if (nestedTraceCount > 0) findings.push(finding('zip:nestedFindings', 'Metadata traces in archived files', String(nestedTraceCount), 'medium', ''));
 
   return {
     data: {

@@ -7,12 +7,36 @@ export const MAX_ENTRY_COUNT = 10_000;
 export const MAX_COMPRESSION_RATIO = 200;
 export const MAX_NESTED_DEPTH = 1;
 export const NEUTRAL_DATE = new Date(Date.UTC(1980, 0, 1, 0, 0, 0));
+
+/**
+ * True when the entry timestamp already equals the neutral value (within the
+ * 2-second resolution of DOS timestamps), i.e. it carries no information.
+ */
+export function isNeutralDate(date: Date | null | undefined): boolean {
+  return Math.abs((date?.getTime() ?? 0) - NEUTRAL_DATE.getTime()) < 2500;
+}
 export const ZIP_OUTPUT_FILENAME = 'buran-clean.zip';
 
 const MAX_NESTED_SUPPORTED_BYTES: Record<string, number> = {
   jpeg: 50 * 1024 * 1024,
   png: 50 * 1024 * 1024,
   webp: 50 * 1024 * 1024,
+  tiff: 50 * 1024 * 1024,
+  gif: 50 * 1024 * 1024,
+  bmp: 50 * 1024 * 1024,
+  avif: 50 * 1024 * 1024,
+  ico: 50 * 1024 * 1024,
+  svg: 50 * 1024 * 1024,
+  mp3: 100 * 1024 * 1024,
+  flac: 100 * 1024 * 1024,
+  wav: 100 * 1024 * 1024,
+  mp4: 100 * 1024 * 1024,
+  ogg: 100 * 1024 * 1024,
+  mkv: 100 * 1024 * 1024,
+  avi: 100 * 1024 * 1024,
+  rtf: 100 * 1024 * 1024,
+  psd: 100 * 1024 * 1024,
+  eml: 100 * 1024 * 1024,
   pdf: 100 * 1024 * 1024,
   docx: 100 * 1024 * 1024,
   xlsx: 100 * 1024 * 1024,

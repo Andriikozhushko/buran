@@ -44,6 +44,18 @@ describe('ZIP archive scan/sanitize/verify', () => {
     expect(scan.data.unsupportedEntries.map((e) => e.path)).toEqual(['docs/readme.txt', 'bin/app.bin']);
   });
 
+  it('re-scanning a cleaned archive reports zero informative timestamps', async () => {
+    const input = await makeZip();
+    const scan = await scanZip(input);
+    if ('blocked' in scan) throw new Error(scan.message);
+    const clean = await sanitizeZip(input, scan.data);
+    if ('blocked' in clean) throw new Error('cleaned archive unexpectedly blocked');
+    const rescan = await scanZip(clean);
+    if ('blocked' in rescan) throw new Error('cleaned archive unexpectedly blocked on re-scan');
+    expect(rescan.data.containerMetadata.entryTimestamps).toBe(0);
+    expect(rescan.data.findings.map((f) => f.field)).not.toContain('zip:timestamps');
+  });
+
   it('cleans ZIP metadata, verifies output, preserves paths, and keeps unsupported bytes identical', async () => {
     const input = await makeZip();
     const scan = await scanZip(input);

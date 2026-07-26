@@ -2,13 +2,49 @@ import { detectFormat } from '../detector';
 import { jpegHandler } from '../jpeg';
 import { pngHandler } from '../png';
 import { webpHandler } from '../webp';
+import { tiffHandler } from '../tiff';
+import { gifHandler } from '../gif';
+import { bmpHandler } from '../bmp';
+import { avifHandler } from '../avif';
+import { icoHandler } from '../ico';
+import { svgHandler } from '../svg';
+import { mp3Handler } from '../mp3';
+import { flacHandler } from '../flac';
+import { wavHandler } from '../wav';
+import { mp4Handler } from '../mp4';
+import { oggHandler } from '../ogg';
+import { mkvHandler } from '../mkv';
+import { aviHandler } from '../avi';
+import { rtfHandler } from '../rtf';
+import { psdHandler } from '../psd';
+import { emlHandler } from '../eml';
 import { scanPdf, sanitizePdf, verifyPdf } from '../pdf';
 import { detectOfficeContainer, scanOffice, sanitizeOffice, verifyOffice } from '../office';
-import type { ScanResult, SupportedFormat, VerificationResult } from '../types';
+import type { FormatHandler, ScanResult, SupportedFormat, VerificationResult } from '../types';
 import type { ZipBlock } from './types';
 import { extensionOf, maxBytesForFormat, zipBlock } from './safety';
 
-const imageHandlers = { jpeg: jpegHandler, png: pngHandler, webp: webpHandler };
+const imageHandlers: Partial<Record<SupportedFormat, FormatHandler>> = {
+  jpeg: jpegHandler,
+  png: pngHandler,
+  webp: webpHandler,
+  tiff: tiffHandler,
+  gif: gifHandler,
+  bmp: bmpHandler,
+  avif: avifHandler,
+  ico: icoHandler,
+  svg: svgHandler,
+  mp3: mp3Handler,
+  flac: flacHandler,
+  wav: wavHandler,
+  mp4: mp4Handler,
+  ogg: oggHandler,
+  mkv: mkvHandler,
+  avi: aviHandler,
+  rtf: rtfHandler,
+  psd: psdHandler,
+  eml: emlHandler,
+};
 
 export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const copy = new Uint8Array(bytes.length);
@@ -87,10 +123,19 @@ export async function scanNestedSupported(
     };
   }
 
-  if (format !== 'jpeg' && format !== 'png' && format !== 'webp') {
+  const handler = imageHandlers[format];
+  if (!handler) {
     return zipBlock('unsupported-package', `Файл ${path} не является поддерживаемым вложенным форматом.`, path);
   }
-  const scan = imageHandlers[format].scan(buffer);
+  let scan: ScanResult;
+  try {
+    scan = handler.scan(buffer);
+  } catch (err) {
+    // e.g. an SVG with active content, or camera RAW disguised as TIFF —
+    // refuse the archive honestly instead of silently keeping the entry.
+    const message = err instanceof Error ? err.message : 'файл не удалось безопасно разобрать';
+    return zipBlock('nested-clean-failed', `Файл ${path}: ${message}`, path);
+  }
   scan.fileName = path;
   scan.fileSize = fileSize;
   const rawMetadataValues = scan.findings.map((f) => f.value).filter((v): v is string => !!v && v.length >= 3);
@@ -132,11 +177,17 @@ export async function cleanNestedSupported(
     return { cleanBuffer, verification: baseVerification(ov.metadataFoundBefore, ov.personalMetadataRemaining, ov.verificationPassed, ov.remainingUnsupportedMetadataRisk) };
   }
 
-  if (scan.format !== 'jpeg' && scan.format !== 'png' && scan.format !== 'webp') {
+  const handler = imageHandlers[scan.format];
+  if (!handler) {
     return zipBlock('unsupported-package', `Нет обработчика для ${scan.fileName}.`, scan.fileName);
   }
-  const handler = imageHandlers[scan.format];
-  const cleanBuffer = handler.clean(buffer);
+  let cleanBuffer: ArrayBuffer;
+  try {
+    cleanBuffer = handler.clean(buffer);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'очистка не удалась';
+    return zipBlock('nested-clean-failed', `Файл ${scan.fileName}: ${message}`, scan.fileName);
+  }
   const verification = handler.verify(scan, cleanBuffer);
   if (!verification.passed || verification.metadataRemaining > 0) {
     return zipBlock('verification-failed', `Файл ${scan.fileName} не прошёл независимую проверку после очистки.`, scan.fileName);

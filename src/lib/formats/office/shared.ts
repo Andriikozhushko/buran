@@ -52,9 +52,18 @@ export function xmlEscape(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Read the text content of the first `<tag>...</tag>` (namespace-agnostic). */
+/**
+ * Read the text content of the first `<tag>...</tag>`.
+ *
+ * OOXML namespaces are identified by their URI, not by a fixed prefix.  Word
+ * normally uses `dc:` and `cp:`, but a valid producer can choose other
+ * prefixes (for example `dublin:` or `properties:`).  Matching the local name
+ * as a fallback keeps core-property scanning compatible with those documents.
+ */
 export function readTagText(xml: string, tag: string): string | null {
-  const re = new RegExp(`<${escapeRe(tag)}[^>]*>([\\s\\S]*?)</${escapeRe(tag)}>`, 'i');
+  const localName = tag.includes(':') ? tag.slice(tag.lastIndexOf(':') + 1) : tag;
+  const name = `(?:${escapeRe(tag)}|(?:[A-Za-z_][\\w.-]*:)?${escapeRe(localName)})`;
+  const re = new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)</${name}\\s*>`, 'i');
   const m = xml.match(re);
   return m ? xmlDecode(m[1].trim()) : null;
 }
@@ -105,6 +114,14 @@ export function removeRelationshipsByTarget(rels: string, targets: string[]): st
     );
   }
   return out;
+}
+
+/** Remove relationships whose target contains a package-path fragment. */
+export function removeRelationshipsWithTargetFragment(rels: string, fragment: string): string {
+  return rels.replace(
+    new RegExp(`<Relationship\\b[^>]*\\bTarget="[^"]*${escapeRe(fragment)}[^"]*"[^>]*/>\\s*`, 'gi'),
+    '',
+  );
 }
 
 function escapeRe(s: string): string {

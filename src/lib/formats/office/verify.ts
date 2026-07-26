@@ -11,12 +11,16 @@ import JSZip from 'jszip';
 import { jpegHandler } from '../jpeg';
 import { pngHandler } from '../png';
 import { webpHandler } from '../webp';
+import { tiffHandler } from '../tiff';
+import { gifHandler } from '../gif';
+import { bmpHandler } from '../bmp';
+import { TECHNICAL_COLOUR_FIELDS } from '../types';
 import type { OfficeScanData, OfficeVerification } from './types';
 import { APP_PART, CORE_PART, CUSTOM_PART, toArrayBuffer } from './shared';
-import { NEUTRAL_DATE } from './package';
+import { isNeutralDate } from './package';
 import { collectEmbeddedImages } from './detect';
 
-const imageHandlers = { jpeg: jpegHandler, png: pngHandler, webp: webpHandler };
+const imageHandlers = { jpeg: jpegHandler, png: pngHandler, webp: webpHandler, tiff: tiffHandler, gif: gifHandler, bmp: bmpHandler };
 
 const REQUIRED_PART: Record<OfficeScanData['format'], string> = {
   docx: 'word/document.xml',
@@ -46,15 +50,20 @@ async function decompressedCorpus(zip: JSZip, names: string[]): Promise<string> 
 export async function verifyOffice(
   original: OfficeScanData,
   cleanBuffer: ArrayBuffer,
+  { removeCustomXml = false }: { removeCustomXml?: boolean } = {},
 ): Promise<OfficeVerification> {
   const metadataFoundBefore = original.findings.length;
-  const risk = [...original.unsupportedMetadataRisk];
+  // The extended pass resolves the custom-XML risk and nothing else, so drop
+  // only that entry — every other disclosure the scan made still applies.
+  const risk = original.unsupportedMetadataRisk.filter(
+    (item) => !(removeCustomXml && item === 'buran:risk/office.custom-xml-preserved'),
+  );
 
   let zip: JSZip;
   try {
     zip = await JSZip.loadAsync(cleanBuffer);
   } catch {
-    return fail(original, metadataFoundBefore, ['Очищенный пакет не удалось открыть как ZIP/OOXML.']);
+    return fail(original, metadataFoundBefore, ['buran:risk/office.package-unreadable']);
   }
 
   const names = Object.keys(zip.files).filter((n) => !zip.files[n].dir);
@@ -105,9 +114,7 @@ export async function verifyOffice(
       const bytes = await zip.files[img.path].async('uint8array');
       const ab = toArrayBuffer(bytes);
       const scan = imageHandlers[img.format].scan(ab);
-      const personal = scan.findings.filter(
-        (f) => !['PNG:iCCP', 'PNG:sRGB', 'PNG:gAMA', 'PNG:cHRM', 'WebP:ICCP'].includes(f.field),
-      );
+      const personal = scan.findings.filter((f) => !TECHNICAL_COLOUR_FIELDS.has(f.field));
       if (personal.length === 0) embeddedImagesVerified++;
     } catch {
       // Counts as not verified.
@@ -116,14 +123,14 @@ export async function verifyOffice(
   const allImagesVerified = embeddedImagesVerified === images.length;
 
   // ZIP timestamps normalised to the neutral fixed value.
-  const neutral = NEUTRAL_DATE.getTime();
-  const zipTimestampsNormalised = Object.values(zip.files).every(
-    (f) => Math.abs((f.date?.getTime() ?? 0) - neutral) < 2500,
-  );
+  const zipTimestampsNormalised = Object.values(zip.files).every((f) => isNeutralDate(f.date));
 
   // Package validity: required core content part still present.
   const requiredPresent = nameSet.has(REQUIRED_PART[original.format]);
-  if (!requiredPresent) risk.push('В выходном пакете отсутствует ожидаемая основная часть документа.');
+  if (!requiredPresent) risk.push('buran:risk/office.main-part-missing');
+
+  const customXmlRemoved = !original.hasCustomXml || !names.some((name) => name.startsWith('customXml/'));
+  if (removeCustomXml && !customXmlRemoved) risk.push('buran:risk/office.custom-xml-remaining');
 
   const verificationPassed =
     corePropertiesRemoved &&
@@ -134,7 +141,8 @@ export async function verifyOffice(
     personalMetadataRemaining === 0 &&
     zipTimestampsNormalised &&
     allImagesVerified &&
-    requiredPresent;
+    requiredPresent &&
+    (!removeCustomXml || customXmlRemoved);
 
   return {
     format: original.format,
@@ -147,6 +155,7 @@ export async function verifyOffice(
     revisionMetadataRemoved,
     embeddedImagesVerified,
     zipTimestampsNormalised,
+    customXmlRemoved,
     verificationPassed,
     remainingUnsupportedMetadataRisk: risk,
   };
@@ -173,6 +182,7 @@ function fail(
     revisionMetadataRemoved: false,
     embeddedImagesVerified: 0,
     zipTimestampsNormalised: false,
+    customXmlRemoved: false,
     verificationPassed: false,
     remainingUnsupportedMetadataRisk: [...original.unsupportedMetadataRisk, ...extraRisk],
   };

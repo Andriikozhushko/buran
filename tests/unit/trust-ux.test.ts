@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
-import { buildTrustResult, buildSuccessBeforeAfter } from '../../src/lib/trust-result';
+import { buildTrustResult, buildSuccessBeforeAfter, concreteFindings } from '../../src/lib/trust-result';
 import { generateCertificatePdfBytes, certificatePdfFilename } from '../../src/lib/certificate';
 import type { ScanResult, VerificationResult } from '../../src/lib/formats/types';
 import ru from '../../src/i18n/ru';
@@ -61,6 +61,23 @@ describe('trust UX wording model', () => {
     }, t);
     expect(model.supportState).toBe('partially-supported');
     expect(model.limitations.join(' ')).toContain('Неподдерживаемые файлы');
+  });
+
+  it('shows every trace counted in the summary, including low-priority container metadata', () => {
+    const groups = concreteFindings({
+      ...baseScan,
+      format: 'docx',
+      findings: [{
+        category: 'office-container',
+        field: 'office:zipTimestamps',
+        label: 'ZIP container timestamps',
+        value: 'Present',
+        severity: 'low',
+        description: '',
+      }],
+    }, t);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].values).toContain('ZIP container timestamps');
   });
 
   it('builds before/after comparison for verification failure without claiming success', () => {

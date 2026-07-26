@@ -27,6 +27,7 @@ function reasonTitle(reason: BlockReason, t: Strings): string {
     'too-large': t.blockedTooLarge,
     malformed: t.blockedMalformed,
     // Office
+    'legacy-office': t.blockedLegacyOffice,
     macro: t.blockedMacro,
     'embedded-object': t.blockedEmbeddedObject,
     'custom-xml': t.blockedCustomXml,

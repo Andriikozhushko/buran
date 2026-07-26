@@ -32,3 +32,6 @@ vite.stderr.log
 vite.stdout.log
 *.tar
 _chk.png
+
+# Claude Code session config
+.claude/

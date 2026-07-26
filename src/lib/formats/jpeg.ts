@@ -70,7 +70,7 @@ const EXIF_TAGS: Record<number, { label: string; category: string; severity: 'lo
   0x001d: { label: 'GPS date', category: 'geolocation', severity: 'high' },
 };
 
-interface ExifFinding {
+export interface ExifFinding {
   tagId: number;
   tagName: string;
   value: string | null;
@@ -182,7 +182,12 @@ const typeSizes: Record<number, number> = {
   10: 8, // SRATIONAL
 };
 
-function parseExifIfd(
+/**
+ * Parse a TIFF IFD (with EXIF/GPS sub-IFD recursion) into categorised
+ * findings. Shared with the TIFF handler — a TIFF file is this exact
+ * structure with tiffStart = 0.
+ */
+export function parseExifIfd(
   view: DataView,
   tiffStart: number,
   ifdOffset: number,

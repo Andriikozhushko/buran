@@ -44,10 +44,12 @@ export async function scanDocx(zip: JSZip): Promise<OfficePartScan> {
   let hasComments = false;
   let hasRevisions = false;
 
-  // Standard comments.
+  // Standard comments. The neutral placeholder BURAN itself writes carries no
+  // personal information, so it is never reported (or used as a leak sentinel) —
+  // otherwise a cleaned file re-scanned would claim its authors "will be removed".
   const comments = await readText(zip, 'word/comments.xml');
   if (comments) {
-    const authors = [...new Set(collectAttr(comments, 'w:author'))];
+    const authors = [...new Set(collectAttr(comments, 'w:author'))].filter((a) => a !== ANON_AUTHOR);
     const initials = [...new Set(collectAttr(comments, 'w:initials'))];
     const dates = [...new Set(collectAttr(comments, 'w:date'))];
     if (authors.length) {
@@ -70,7 +72,7 @@ export async function scanDocx(zip: JSZip): Promise<OfficePartScan> {
     if (part === 'word/comments.xml') continue;
     const xml = await readText(zip, part);
     if (!xml) continue;
-    for (const a of collectAttr(xml, 'w:author')) revAuthors.add(a);
+    for (const a of collectAttr(xml, 'w:author')) if (a !== ANON_AUTHOR) revAuthors.add(a);
     for (const d of collectAttr(xml, 'w:date')) revDates.add(d);
     rsidCount += (xml.match(/\bw:rsid\w*="[^"]*"/gi) || []).length;
     rsidCount += (xml.match(/<w:rsids>/i) || []).length;

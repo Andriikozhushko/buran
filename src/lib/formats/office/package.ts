@@ -20,6 +20,14 @@ export const MAX_COMPRESSION_RATIO = 200;
 /** Neutral fixed timestamp for all rebuilt entries (DOS epoch, 1980-01-01). */
 export const NEUTRAL_DATE = new Date(Date.UTC(1980, 0, 1, 0, 0, 0));
 
+/**
+ * True when the entry timestamp already equals the neutral value (within the
+ * 2-second resolution of DOS timestamps), i.e. it carries no information.
+ */
+export function isNeutralDate(date: Date | null | undefined): boolean {
+  return Math.abs((date?.getTime() ?? 0) - NEUTRAL_DATE.getTime()) < 2500;
+}
+
 export interface LoadedPackage {
   zip: JSZip;
   /** File entry names (excludes directory entries), in load order. */
@@ -104,17 +112,28 @@ export async function rebuildPackage(
   loaded: LoadedPackage,
   drop: Set<string>,
   replace: Map<string, Uint8Array | string>,
+  options: {
+    /**
+     * Entries written without compression. ODF requires its `mimetype` entry
+     * to be the first entry and STORED, so readers can sniff it.
+     */
+    storeUncompressed?: Set<string>;
+  } = {},
 ): Promise<ArrayBuffer> {
   const out = new JSZip();
+  const stored = options.storeUncompressed ?? new Set<string>();
 
   for (const name of loaded.entryNames) {
     if (drop.has(name)) continue;
     const replacement = replace.get(name);
+    const entryOptions: { date: Date; compression?: 'STORE' } = stored.has(name)
+      ? { date: NEUTRAL_DATE, compression: 'STORE' }
+      : { date: NEUTRAL_DATE };
     if (replacement !== undefined) {
-      out.file(name, replacement, { date: NEUTRAL_DATE });
+      out.file(name, replacement, entryOptions);
     } else {
       const data = await loaded.zip.files[name].async('uint8array');
-      out.file(name, data, { date: NEUTRAL_DATE });
+      out.file(name, data, entryOptions);
     }
   }
 

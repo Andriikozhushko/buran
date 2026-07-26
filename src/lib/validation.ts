@@ -1,15 +1,5 @@
-import { detectFormat } from './formats/detector';
-import { detectOfficeContainer } from './formats/office/detect';
+import { detectScanFormat, getDescriptor, MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES } from './formats/registry';
 import type { SupportedFormat } from './formats/types';
-
-const MAX_IMAGE_SIZE = 50 * 1024 * 1024; // 50 MB for images
-const MAX_PDF_SIZE = 100 * 1024 * 1024; // 100 MB for PDFs and Office packages
-
-const OFFICE_EXT: Record<string, SupportedFormat> = {
-  docx: 'docx',
-  xlsx: 'xlsx',
-  pptx: 'pptx',
-};
 
 export interface ValidationSuccess {
   valid: true;
@@ -31,108 +21,47 @@ export type ValidationResult = ValidationSuccess | ValidationError;
 
 /**
  * Validate a File object for BURAN processing.
- * Checks file size, reads the file, and detects the format from magic bytes.
+ * Checks file size, reads the file, and detects the format from magic bytes —
+ * never from the filename. OOXML packages surface here as 'zip' (or 'docx'
+ * for OLE/CFB containers); the worker classifies them from package content.
  */
 export async function validateFile(file: File): Promise<ValidationResult> {
   const fileName = file.name;
   const fileSize = file.size;
 
-  // Hard upper bound before reading: the largest per-format limit (PDF, 100 MB).
-  if (fileSize > MAX_PDF_SIZE) {
-    return {
-      valid: false,
-      error: 'too-large',
-      fileName,
-      fileSize,
-      detectedType: null,
-    };
+  // Hard upper bound before reading: the largest per-format limit.
+  if (fileSize > MAX_DOCUMENT_BYTES) {
+    return { valid: false, error: 'too-large', fileName, fileSize, detectedType: null };
   }
 
-  // Check for empty files
   if (fileSize === 0) {
-    return {
-      valid: false,
-      error: 'unsupported-format',
-      fileName,
-      fileSize,
-      detectedType: null,
-    };
+    return { valid: false, error: 'unsupported-format', fileName, fileSize, detectedType: null };
   }
 
-  // Read the file
   let buffer: ArrayBuffer;
   try {
     buffer = await file.arrayBuffer();
   } catch {
-    return {
-      valid: false,
-      error: 'read-error',
-      fileName,
-      fileSize,
-      detectedType: null,
-    };
+    return { valid: false, error: 'read-error', fileName, fileSize, detectedType: null };
   }
 
-  // Detect format from magic bytes (images + PDF).
-  const format = detectFormat(buffer);
-
-  // Office: OOXML packages are ZIP (PK) or, when encrypted, OLE/CFB compound
-  // files. Magic bytes alone cannot tell DOCX/XLSX/PPTX apart, so we take a
-  // provisional format from the extension here; the worker authoritatively
-  // re-classifies from package CONTENT (and blocks unsupported packages).
-  const ext = fileName.split('.').pop()?.toLowerCase() ?? null;
-  if (!format || format === 'zip') {
-    const container = detectOfficeContainer(buffer);
-    if (container && ext && OFFICE_EXT[ext]) {
-      if (fileSize > MAX_PDF_SIZE) {
-        return { valid: false, error: 'too-large', fileName, fileSize, detectedType: OFFICE_EXT[ext] };
-      }
-      return { valid: true, format: OFFICE_EXT[ext], buffer, fileName, fileSize };
-    }
-  }
-
-  // Per-format size limit: PDFs, Office packages, and ZIP archives may exceed the 50 MB image cap. This is
-  // checked before the unsupported-format branch so an oversize non-PDF is
-  // reported as too-large rather than unsupported.
-  if (format !== 'pdf' && format !== 'zip' && fileSize > MAX_IMAGE_SIZE) {
-    return {
-      valid: false,
-      error: 'too-large',
-      fileName,
-      fileSize,
-      detectedType: format,
-    };
-  }
+  const format = detectScanFormat(buffer);
 
   if (!format) {
-    return {
-      valid: false,
-      error: 'unsupported-format',
-      fileName,
-      fileSize,
-      detectedType: ext,
-    };
+    // Oversize unrecognised content is reported as too-large, not unsupported —
+    // the size problem is actionable, the sniff result of a huge file is not.
+    if (fileSize > MAX_IMAGE_BYTES) {
+      return { valid: false, error: 'too-large', fileName, fileSize, detectedType: null };
+    }
+    const ext = fileName.split('.').pop()?.toLowerCase() ?? null;
+    return { valid: false, error: 'unsupported-format', fileName, fileSize, detectedType: ext };
   }
 
-  return {
-    valid: true,
-    format,
-    buffer,
-    fileName,
-    fileSize,
-  };
-}
-
-/**
- * Get a user-friendly error message for a validation error.
- */
-export function getValidationErrorMessage(error: 'too-large' | 'unsupported-format' | 'read-error'): string {
-  switch (error) {
-    case 'too-large':
-      return 'Файл слишком большой. Максимальный размер — 50 МБ для изображений и 100 МБ для PDF/Office/ZIP.';
-    case 'unsupported-format':
-      return 'Неподдерживаемый формат файла. Пожалуйста, выберите JPG, PNG, WebP, HEIC/HEIF, PDF, Office или ZIP.';
-    case 'read-error':
-      return 'Не удалось прочитать файл. Попробуйте другой.';
+  // Per-format size limit from the registry (checked after detection so an
+  // oversize supported file is reported as too-large, not unsupported).
+  if (fileSize > getDescriptor(format).maxBytes) {
+    return { valid: false, error: 'too-large', fileName, fileSize, detectedType: format };
   }
+
+  return { valid: true, format, buffer, fileName, fileSize };
 }

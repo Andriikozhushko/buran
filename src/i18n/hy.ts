@@ -109,7 +109,7 @@ const strings: Strings = {
   officeStructure: 'Office փաստաթղթի կառուցվածք',
   officeStructureChecked: 'ստուգված է',
   officeDropFormats: 'JPG, PNG, WebP, PDF, DOCX, XLSX, PPTX',
-  zipDropFormats: 'JPG, PNG, WebP, HEIC/HEIF, PDF, DOCX, XLSX, PPTX, ZIP',
+  zipDropFormats: 'JPG, PNG, WebP, HEIC, TIFF, GIF, BMP, AVIF, ICO, SVG, PSD, MP3, FLAC, WAV, OGG, MP4/MOV, MKV, AVI, PDF, Office, ODT, RTF, EPUB, EML, ZIP',
 
   unsupportedTitle: 'Ձևաչափը դեռ չի աջակցվում',
   unsupportedGeneric: 'Այս ֆայլի ձևաչափը BURAN-ը դեռ չի աջակցում։',
@@ -129,6 +129,7 @@ const strings: Strings = {
   ],
 
   footerText: 'BURAN — բաց կոդով գործիք՝ մետատվյալների տեղական մաքրման համար։',
+  logoHomeAria: 'Դեպի գլխավոր էջ',
   privacyLink: 'Privacy',
   privacyTitle: 'Privacy & Security',
   privacyClose: 'Փակել',
@@ -221,8 +222,20 @@ const strings: Strings = {
   scanNoUpload: 'Ֆայլը չի վերբեռնվի սերվեր։',
   scanZipTreeAria: 'ZIP արխիվի ծառ',
   scanZipDefaultName: 'archive.zip',
+  scanZipEntryClean: 'մետատվյալների հետքեր չկան',
   scanZipEntryTraces: 'հետք · կմաքրվի',
   scanZipEntryUnchanged: 'Պահպանված անփոփոխ — BURAN-ը դեռ չի վերլուծում այս ձևաչափի մետատվյալները։',
+
+  // --- ScanReport: Office custom XML ---
+  scanCustomXmlNotice:
+    'Փաստաթուղթը պարունակում է հատուկ XML-մասեր (customXml)։ Սովորական մաքրումը դրանք պահում է անփոփոխ։ Ընդլայնված մաքրումը հեռացնում է բոլոր customXml-մասերը, ինչը կարող է խախտել Word-ի դաշտերի և ձևերի կապերը։',
+  scanCustomXmlAggressive: 'Մաքրել customXml-ի հետ միասին',
+  scanCustomXmlAggressiveAria: 'Հեռացնել մետատվյալները հատուկ XML-մասերի հետ միասին',
+  riskOfficeCustomXmlPreserved:
+    'Հատուկ XML-մասերը (customXml) պահպանվել են անփոփոխ և կարող են պարունակել կամայական տեղեկություններ ձեր կամ ձեր կազմակերպության մասին։',
+  riskOfficeCustomXmlRemaining: 'Մաքրված փաստաթղթում դեռ առկա են հատուկ XML-մասեր։',
+  riskOfficeMainPartMissing: 'Ելքային փաթեթում բացակայում է փաստաթղթի սպասվող հիմնական մասը։',
+  riskOfficePackageUnreadable: 'Մաքրված փաթեթը չհաջողվեց բացել որպես ZIP/OOXML։',
 
   // --- ScanReport: concrete found values ---
   scanFoundValuesTitle: 'Ինչ է գտել BURAN-ը ֆայլում',
@@ -379,6 +392,7 @@ const strings: Strings = {
   blockedTooManyPages: 'Չափազանց շատ էջեր',
   blockedTooLarge: 'Ֆայլը չափազանց մեծ է',
   blockedMalformed: 'Չհաջողվեց վերլուծել ֆայլը',
+  blockedLegacyOffice: 'Հին Office ձևաչափ',
   blockedMacro: 'Մակրոներով փաստաթուղթ',
   blockedEmbeddedObject: 'Ներդրված օբյեկտներ',
   blockedCustomXml: 'Հատուկ XML տվյալներ',

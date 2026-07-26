@@ -79,7 +79,9 @@ export async function verifyPdf(
 
   const annotationAuthorFieldsRemoved = !after.findings.some((f) => f.field === 'Annot:T');
 
-  const documentIdRegeneratedOrRemoved = !!doc.context.trailerInfo.ID;
+  // The sanitiser deletes the (optional) trailer /ID outright; any surviving
+  // ID is a failure.
+  const documentIdRegeneratedOrRemoved = !doc.context.trailerInfo.ID;
 
   const pageCountPreserved = after.info.pageCount === original.info.pageCount;
   const pageGeometryPreserved = geometryEqual(after.info.pageGeometry, original.info.pageGeometry);
@@ -95,11 +97,9 @@ export async function verifyPdf(
     risk.push('В выходных байтах остались исходные значения метаданных.');
   }
 
-  // Personal metadata still detected (the regenerated random /ID is expected
-  // and excluded — it carries no personal information).
-  const personalMetadataRemaining = after.findings.filter(
-    (f) => f.category !== 'pdf-identifiers',
-  ).length;
+  // Personal metadata still detected. The /ID is removed (not regenerated), so
+  // identifier findings on the re-scan count as real leftovers like any other.
+  const personalMetadataRemaining = after.findings.length;
 
   const verificationPassed =
     infoDictionaryRemoved &&

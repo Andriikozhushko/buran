@@ -8,7 +8,7 @@ import { Button } from './Button';
 
 interface ScanReportProps {
   scanResult: ScanResult;
-  onClean: () => void;
+  onClean: (removeCustomXml?: boolean) => void;
   onReset: () => void;
 }
 
@@ -21,6 +21,7 @@ export function ScanReport({ scanResult, onClean, onReset }: ScanReportProps) {
   // Offer that verified clean export even when the source scan did not expose
   // a metadata container; otherwise the advertised HEIC workflow dead-ends.
   const canClean = hasMetadataToClean || scanResult.format === 'heic';
+  const hasCustomXml = scanResult.office?.hasCustomXml === true;
 
   return (
     <section className="w-full h-full flex flex-col animate-fade-in min-h-0" aria-labelledby="scan-title">
@@ -81,6 +82,12 @@ export function ScanReport({ scanResult, onClean, onReset }: ScanReportProps) {
 
         {scanResult.format === 'zip' && scanResult.zip ? <ZipTree scanResult={scanResult} t={t} /> : null}
 
+        {hasCustomXml && (
+          <div className="rounded-xl border border-l-[3px] border-[#ece0cb] border-l-[#c08a3e] bg-[#faf6ee] p-4 text-[13px] leading-relaxed text-[#7b6244]">
+            {t.scanCustomXmlNotice}
+          </div>
+        )}
+
         {model.limitations.length > 0 && (
           <details className="bg-[#faf6ee] rounded-xl border border-l-[3px] border-[#ece0cb] border-l-[#c08a3e] p-4 group">
             <summary className="cursor-pointer text-[13.5px] font-semibold text-[#6c4b26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9c6b3f] rounded-md">
@@ -105,10 +112,20 @@ export function ScanReport({ scanResult, onClean, onReset }: ScanReportProps) {
       </div>
 
       {canClean && (
-        <div className="flex flex-col items-center pt-3 flex-shrink-0">
-          <Button variant="primary" size="lg" onClick={onClean} aria-label={t.scanCleanAria}>
+        <div className="flex flex-col items-center pt-3 flex-shrink-0 gap-2">
+          <Button variant="primary" size="lg" onClick={() => onClean(false)} aria-label={t.scanCleanAria}>
             {t.ctaClean}
           </Button>
+          {hasCustomXml && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onClean(true)}
+              aria-label={t.scanCustomXmlAggressiveAria}
+            >
+              {t.scanCustomXmlAggressive}
+            </Button>
+          )}
           <p className="text-[12px] text-[#8a8a8a] mt-2">{t.scanNoUpload}</p>
         </div>
       )}
@@ -155,7 +172,11 @@ function ZipTree({ scanResult, t }: { scanResult: ScanResult; t: Strings }) {
   const zip = scanResult.zip;
   if (!zip) return null;
   const rows = [
-    ...zip.supportedEntries.map((entry) => ({ path: entry.path, note: `${entry.findingsCount} ${t.scanZipEntryTraces}`, kind: 'clean' as const })),
+    ...zip.supportedEntries.map((entry) => ({
+      path: entry.path,
+      note: entry.findingsCount > 0 ? `${entry.findingsCount} ${t.scanZipEntryTraces}` : t.scanZipEntryClean,
+      kind: 'clean' as const,
+    })),
     ...zip.unsupportedEntries.map((entry) => ({ path: entry.path, note: t.scanZipEntryUnchanged, kind: 'unchanged' as const })),
   ];
   return (

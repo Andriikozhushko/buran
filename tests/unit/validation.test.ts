@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateFile, getValidationErrorMessage } from '../../src/lib/validation';
+import { validateFile } from '../../src/lib/validation';
 import { readFixture } from '../helpers';
 import { join } from 'node:path';
 
@@ -80,13 +80,5 @@ describe('validateFile', () => {
     if (result.valid) {
       expect(result.format).toBe('jpeg');
     }
-  });
-});
-
-describe('getValidationErrorMessage', () => {
-  it('returns user-friendly messages', () => {
-    expect(getValidationErrorMessage('too-large')).toContain('50');
-    expect(getValidationErrorMessage('unsupported-format')).toContain('JPG');
-    expect(getValidationErrorMessage('read-error')).toContain('прочитать');
   });
 });

@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import type { ZipScanData, ZipVerification } from './types';
-import { archiveComment, entryExtraFieldCount, entryHasExternalAttributes, loadZip, NEUTRAL_DATE, readEntryBytes } from './safety';
+import { archiveComment, entryExtraFieldCount, entryHasExternalAttributes, isNeutralDate, loadZip, readEntryBytes } from './safety';
 import { detectNestedFormat, scanNestedSupported, toArrayBuffer } from './recursive';
 import { scanZip } from './scan';
 
@@ -26,8 +26,7 @@ export async function verifyZip(
   if (!structurePreserved) risk.push('Структура или порядок элементов архива изменились.');
 
   const archiveCommentRemoved = archiveComment(clean.zip).length === 0;
-  const neutral = NEUTRAL_DATE.getTime();
-  const timestampsNormalised = Object.values(clean.zip.files).every((f) => Math.abs((f.date?.getTime() ?? 0) - neutral) < 2500);
+  const timestampsNormalised = Object.values(clean.zip.files).every((f) => isNeutralDate(f.date));
   const extraFieldsNeutralised = Object.values(clean.zip.files).every((f) => entryExtraFieldCount(f) === 0);
   const externalAttributesNeutralised = Object.values(clean.zip.files).every((f) => !entryHasExternalAttributes(f));
 

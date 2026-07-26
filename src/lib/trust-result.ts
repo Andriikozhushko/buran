@@ -1,4 +1,6 @@
 import type { MetadataFinding, ScanResult, VerificationResult } from './formats/types';
+import { TECHNICAL_COLOUR_FIELDS } from './formats/types';
+import { resolveEngineMessages } from './formats/messages';
 import type { Strings } from '../i18n';
 
 export type SupportState = 'supported' | 'partially-supported' | 'blocked';
@@ -30,10 +32,15 @@ export interface ConcreteFindingGroup {
   values: string[];
 }
 
-const TECHNICAL_COLOUR_FIELDS = new Set(['PNG:iCCP', 'PNG:sRGB', 'PNG:gAMA', 'PNG:cHRM', 'WebP:ICCP']);
-
 export function personalFindings(scan: ScanResult): MetadataFinding[] {
   return scan.findings.filter((f) => !TECHNICAL_COLOUR_FIELDS.has(f.field));
+}
+
+/** Package-document formats that share the Office trust copy. */
+const OFFICE_LIKE = new Set(['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'odg', 'epub', 'rtf', 'eml']);
+
+function isOfficeLike(format: ScanResult['format']): boolean {
+  return OFFICE_LIKE.has(format);
 }
 
 export function formatFileSize(bytes: number): string {
@@ -114,13 +121,13 @@ function concreteFindingLabel(finding: MetadataFinding, t: Strings): string {
 export function concreteFindings(scan: ScanResult, t: Strings): ConcreteFindingGroup[] {
   const groups = new Map<string, ConcreteFindingGroup>();
   for (const finding of personalFindings(scan)) {
-    if (finding.severity === 'low') continue;
     if (finding.field === 'EXIF:Orientation') continue; // service rotation tag, not personal
-    if (finding.category.includes('container')) continue; // IFD pointers / "present" markers, not concrete data
-    if (!isMeaningfulValue(finding.value)) continue;
 
     const label = concreteFindingLabel(finding, t);
-    const value = finding.value.length > 180 ? finding.value.slice(0, 180) + '…' : finding.value;
+    // The summary counts every metadata trace. Do not hide a low-priority or
+    // presence-only trace from the corresponding "what was found" section.
+    const rawValue = isMeaningfulValue(finding.value) ? finding.value : finding.label;
+    const value = rawValue.length > 180 ? rawValue.slice(0, 180) + '…' : rawValue;
     const existing = groups.get(label);
     if (existing) {
       if (!existing.values.includes(value)) existing.values.push(value);
@@ -163,7 +170,9 @@ export function successLimitations(scan: ScanResult, verification: VerificationR
   if (scan.format === 'zip' && (scan.zip?.unsupportedEntries.length ?? 0) > 0) {
     items.push(t.trustLimitZipUnsupported);
   }
-  if (verification.limitations.length > 0) items.push(...verification.limitations);
+  // Handler limitations arrive as engine message codes, not prose — the worker
+  // that produced them has no locale.
+  items.push(...resolveEngineMessages(verification.limitations, t));
   return Array.from(new Set(items));
 }
 
@@ -208,7 +217,7 @@ function summaryRiskText(scan: ScanResult, t: Strings): string {
   if (scan.format === 'zip') return t.trustRiskZip;
   if (scan.format === 'heic') return t.trustRiskHeic;
   if (scan.format === 'pdf') return t.trustRiskPdf;
-  if (scan.format === 'docx' || scan.format === 'xlsx' || scan.format === 'pptx') return t.trustRiskOffice;
+  if (isOfficeLike(scan.format)) return t.trustRiskOffice;
   return t.trustRiskImage;
 }
 
@@ -248,7 +257,7 @@ function removalItems(scan: ScanResult, t: Strings): string[] {
   if (scan.format === 'zip') return [t.trustRemoveZip1, t.trustRemoveZip2, t.trustRemoveZip3];
   if (scan.format === 'heic') return [t.trustRemoveHeic1, t.trustRemoveHeic2, t.trustRemoveHeic3];
   if (scan.format === 'pdf') return [t.trustRemovePdf1, t.trustRemovePdf2, t.trustRemovePdf3];
-  if (scan.format === 'docx' || scan.format === 'xlsx' || scan.format === 'pptx') return [t.trustRemoveOffice1, t.trustRemoveOffice2, t.trustRemoveOffice3, t.trustRemoveOffice4];
+  if (isOfficeLike(scan.format)) return [t.trustRemoveOffice1, t.trustRemoveOffice2, t.trustRemoveOffice3, t.trustRemoveOffice4];
   return [t.trustRemoveImage1, t.trustRemoveImage2, t.trustRemoveImage3];
 }
 
@@ -256,7 +265,7 @@ function preservedItems(scan: ScanResult, t: Strings): string[] {
   if (scan.format === 'zip') return [t.trustPreserveZip1, t.trustPreserveZip2, t.trustPreserveZip3];
   if (scan.format === 'heic') return [t.trustPreserveHeic1, t.trustPreserveHeic2, t.trustPreserveHeic3];
   if (scan.format === 'pdf') return [t.trustPreservePdf1, t.trustPreservePdf2];
-  if (scan.format === 'docx' || scan.format === 'xlsx' || scan.format === 'pptx') return [t.trustPreserveOffice1, t.trustPreserveOffice2];
+  if (isOfficeLike(scan.format)) return [t.trustPreserveOffice1, t.trustPreserveOffice2];
   const items = [t.trustPreserveImage1, t.trustPreserveImage2, t.trustPreserveImage3];
   if (scan.preservedInfo.hasTransparency) items.push(t.trustPreserveImageTransparency);
   items.push(t.trustPreserveImageOrientation);
@@ -267,7 +276,7 @@ function verificationItems(scan: ScanResult, t: Strings): string[] {
   if (scan.format === 'zip') return [t.trustVerifyZip1, t.trustVerifyZip2, t.trustVerifyZip3, t.trustVerifyZip4];
   if (scan.format === 'heic') return [t.trustVerifyHeic1, t.trustVerifyHeic2, t.trustVerifyHeic3];
   if (scan.format === 'pdf') return [t.trustVerifyPdf1, t.trustVerifyPdf2, t.trustVerifyPdf3];
-  if (scan.format === 'docx' || scan.format === 'xlsx' || scan.format === 'pptx') return [t.trustVerifyOffice1, t.trustVerifyOffice2, t.trustVerifyOffice3, t.trustVerifyOffice4];
+  if (isOfficeLike(scan.format)) return [t.trustVerifyOffice1, t.trustVerifyOffice2, t.trustVerifyOffice3, t.trustVerifyOffice4];
   return [t.trustVerifyImage1, t.trustVerifyImage2, t.trustVerifyImage3];
 }
 
@@ -275,7 +284,7 @@ function limitationItems(scan: ScanResult, t: Strings): string[] {
   const items = [t.trustLimitItemBase];
   if (scan.format === 'zip' && (scan.zip?.unsupportedEntries.length ?? 0) > 0) items.push(t.trustLimitItemZip);
   if (scan.format === 'heic') items.push(t.trustLimitItemHeic);
-  if (scan.format === 'docx' || scan.format === 'xlsx' || scan.format === 'pptx') items.push(t.trustLimitItemOffice);
+  if (scan.format === 'docx' || scan.format === 'xlsx' || scan.format === 'pptx' || scan.format === 'odt' || scan.format === 'ods' || scan.format === 'odp' || scan.format === 'odg') items.push(t.trustLimitItemOffice);
   return items;
 }
 
@@ -284,6 +293,6 @@ function preservedSuccessLine(scan: ScanResult, verification: VerificationResult
   if (scan.format === 'heic') return `${verification.heic?.exportedFormat === 'png' ? 'PNG' : 'JPEG'} ${t.trustPreservedLineHeicVerified}`;
   if (scan.preservedInfo.iccDescription) return t.trustPreservedLineIcc;
   if (scan.format === 'pdf') return t.trustPreservedLinePdf;
-  if (scan.format === 'docx' || scan.format === 'xlsx' || scan.format === 'pptx') return t.trustPreservedLineOffice;
+  if (isOfficeLike(scan.format)) return t.trustPreservedLineOffice;
   return t.trustPreservedLineTechnical;
 }

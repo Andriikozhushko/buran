@@ -50,21 +50,24 @@ describe('04A lazy loading contract', () => {
     expect(source).toContain("await import('../lib/certificate')");
   });
 
-  it('keeps PDF, Office, and ZIP handlers behind worker dynamic imports', () => {
+  it('keeps every format pipeline behind registry dynamic imports', () => {
+    const registry = readFileSync(join(SRC, 'lib', 'formats', 'registry.ts'), 'utf8');
+    for (const module of ['./pdf', './office', './zip', './jpeg', './png', './webp', './heic']) {
+      expect(registry).toContain(`await import('${module}')`);
+    }
+    // The workers are dispatch loops: no static imports of format modules.
     const scanWorker = readFileSync(join(SRC, 'workers', 'scan.worker.ts'), 'utf8');
     const cleanWorker = readFileSync(join(SRC, 'workers', 'clean.worker.ts'), 'utf8');
-    expect(scanWorker).toContain("await import('../lib/formats/pdf')");
-    expect(scanWorker).toContain("await import('../lib/formats/office')");
-    expect(scanWorker).toContain("await import('../lib/formats/zip')");
-    expect(cleanWorker).toContain("await import('../lib/formats/pdf')");
-    expect(cleanWorker).toContain("await import('../lib/formats/office')");
-    expect(cleanWorker).toContain("await import('../lib/formats/zip')");
+    for (const worker of [scanWorker, cleanWorker]) {
+      expect(worker).not.toMatch(/from '\.\.\/lib\/formats\/(pdf|office|zip|jpeg|png|webp|heic)/);
+    }
   });
 
-  it('uses lightweight Office detection during validation', () => {
+  it('keeps validation lightweight: registry only, no format modules', () => {
     const validation = readFileSync(join(SRC, 'lib', 'validation.ts'), 'utf8');
-    expect(validation).toContain("./formats/office/detect");
-    expect(validation).not.toContain("./formats/office';");
+    expect(validation).toContain('./formats/registry');
+    expect(validation).not.toContain("./formats/office");
+    expect(validation).not.toContain('jszip');
   });
 
   it('does not expose demo-file generators from the upload screen', () => {

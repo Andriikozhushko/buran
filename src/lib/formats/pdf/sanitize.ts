@@ -7,8 +7,9 @@
  *
  * Removed: Info dictionary (and custom properties), document-level and
  * object-level XMP /Metadata streams, PieceInfo/application-private metadata,
- * annotation author/title identity fields (/T, /M, /NM). The trailer /ID is
- * regenerated to a fresh random value.
+ * annotation author/title identity fields (/T, /M, /NM), and the trailer /ID
+ * (optional per spec; removing it defeats cross-copy correlation and lets a
+ * re-scan of the cleaned file honestly report nothing to remove).
  *
  * Preserved: pages, page geometry, content streams, text, images, links,
  * outlines, forms, and annotation content/appearance (/Contents, /AP).
@@ -22,20 +23,10 @@ import {
   PDFDict,
   PDFName,
   PDFRef,
-  PDFHexString,
 } from 'pdf-lib';
 
 const METADATA = PDFName.of('Metadata');
 const PIECE_INFO = PDFName.of('PieceInfo');
-
-/** 16 random bytes as an uppercase hex string, via the platform CSPRNG. */
-function randomIdHex(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  let hex = '';
-  for (const b of bytes) hex += b.toString(16).padStart(2, '0');
-  return hex;
-}
 
 /**
  * Sanitise a PDF buffer and return a fresh, cleaned buffer.
@@ -88,12 +79,12 @@ export async function sanitizePdf(buffer: ArrayBuffer): Promise<ArrayBuffer> {
     }
   }
 
-  // --- Regenerate the document /ID (defeats cross-copy correlation) ---
-  const idHex = randomIdHex();
-  doc.context.trailerInfo.ID = doc.context.obj([
-    PDFHexString.of(idHex),
-    PDFHexString.of(idHex),
-  ]);
+  // --- Remove the document /ID entirely ---
+  // /ID is optional (required only for encrypted documents, which are blocked
+  // upstream). A regenerated random ID would be indistinguishable from a real
+  // one on re-scan, so removal is both the stronger anti-correlation measure
+  // and the only honest one.
+  delete doc.context.trailerInfo.ID;
 
   // Fresh, fully-rewritten output. We removed the Info dictionary entirely, so
   // pdf-lib has nothing to re-stamp — the output carries no Producer/Creator

@@ -40,7 +40,8 @@ export async function scanXlsx(zip: JSZip): Promise<OfficePartScan> {
     const xml = await readText(zip, part);
     if (!xml) continue;
     for (const a of collectAuthors(xml)) {
-      if (a) authors.add(a);
+      // BURAN's own neutral placeholder carries no personal information.
+      if (a && a !== ANON_AUTHOR) authors.add(a);
     }
   }
   if (authors.size > 0) {

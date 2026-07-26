@@ -109,7 +109,7 @@ const strings: Partial<Strings> = {
   officeStructure: 'Структура Office-документа',
   officeStructureChecked: 'перевірено',
   officeDropFormats: 'JPG, PNG, WebP, PDF, DOCX, XLSX, PPTX',
-  zipDropFormats: 'JPG, PNG, WebP, HEIC/HEIF, PDF, DOCX, XLSX, PPTX, ZIP',
+  zipDropFormats: 'JPG, PNG, WebP, HEIC, TIFF, GIF, BMP, AVIF, ICO, SVG, PSD, MP3, FLAC, WAV, OGG, MP4/MOV, MKV, AVI, PDF, Office, ODT, RTF, EPUB, EML, ZIP',
 
   unsupportedTitle: 'Формат поки що не підтримується',
   unsupportedGeneric: 'Цей формат файлу поки що не підтримується BURAN.',
@@ -129,6 +129,7 @@ const strings: Partial<Strings> = {
   ],
 
   footerText: 'BURAN — інструмент з відкритим кодом для локального очищення метаданих.',
+  logoHomeAria: 'На головну',
   privacyLink: 'Privacy',
   privacyTitle: 'Privacy & Security',
   privacyClose: 'Закрити',
@@ -221,8 +222,20 @@ const strings: Partial<Strings> = {
   scanNoUpload: 'Файл не буде завантажено на сервер.',
   scanZipTreeAria: 'Дерево ZIP-архіву',
   scanZipDefaultName: 'archive.zip',
+  scanZipEntryClean: 'слідів метаданих немає',
   scanZipEntryTraces: 'слідів · буде очищено',
   scanZipEntryUnchanged: 'Збережено без змін — BURAN поки що не аналізує метадані цього формату.',
+
+  // --- ScanReport: Office custom XML ---
+  scanCustomXmlNotice:
+    'Документ містить користувацькі XML-дані (customXml). Звичайне очищення зберігає їх без змін. Розширене видаляє всі customXml-частини — це може порушити прив’язки полів і форм Word.',
+  scanCustomXmlAggressive: 'Очистити разом із customXml',
+  scanCustomXmlAggressiveAria: 'Видалити метадані разом із користувацькими XML-даними',
+  riskOfficeCustomXmlPreserved:
+    'Користувацькі XML-дані (customXml) збережено без змін; вони можуть містити довільні відомості про вас або організацію.',
+  riskOfficeCustomXmlRemaining: 'Користувацькі XML-дані залишилися в очищеному документі.',
+  riskOfficeMainPartMissing: 'У вихідному пакеті відсутня очікувана основна частина документа.',
+  riskOfficePackageUnreadable: 'Очищений пакет не вдалося відкрити як ZIP/OOXML.',
 
   // --- ScanReport: concrete found values ---
   scanFoundValuesTitle: 'Що BURAN знайшов у файлі',
@@ -379,6 +392,7 @@ const strings: Partial<Strings> = {
   blockedTooManyPages: 'Забагато сторінок',
   blockedTooLarge: 'Файл завеликий',
   blockedMalformed: 'Не вдалося розібрати файл',
+  blockedLegacyOffice: 'Старий формат Office',
   blockedMacro: 'Документ із макросами',
   blockedEmbeddedObject: "Вбудовані об'єкти",
   blockedCustomXml: 'Користувацькі XML-дані',

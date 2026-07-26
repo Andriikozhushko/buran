@@ -107,7 +107,7 @@ const strings = {
   officeStructure: 'Структура Office-документа',
   officeStructureChecked: 'проверена',
   officeDropFormats: 'JPG, PNG, WebP, PDF, DOCX, XLSX, PPTX',
-  zipDropFormats: 'JPG, PNG, WebP, HEIC/HEIF, PDF, DOCX, XLSX, PPTX, ZIP',
+  zipDropFormats: 'JPG, PNG, WebP, HEIC, TIFF, GIF, BMP, AVIF, ICO, SVG, PSD, MP3, FLAC, WAV, OGG, MP4/MOV, MKV, AVI, PDF, Office, ODT, RTF, EPUB, EML, ZIP',
 
   unsupportedTitle: 'Формат пока не поддерживается',
   unsupportedGeneric: 'Этот формат файла пока не поддерживается BURAN.',
@@ -127,6 +127,7 @@ const strings = {
   ],
 
   footerText: 'BURAN — open-source инструмент для локальной очистки метаданных.',
+  logoHomeAria: 'На главную',
   privacyLink: 'Приватность',
   privacyTitle: 'Приватность и безопасность',
   privacyClose: 'Закрыть',
@@ -219,8 +220,20 @@ const strings = {
   scanNoUpload: 'Файл не будет загружен на сервер.',
   scanZipTreeAria: 'Дерево ZIP-архива',
   scanZipDefaultName: 'archive.zip',
+  scanZipEntryClean: 'следов метаданных нет',
   scanZipEntryTraces: 'следов · будет очищен',
   scanZipEntryUnchanged: 'Сохранён без изменений — BURAN пока не анализирует метаданные этого формата.',
+
+  // --- ScanReport: Office custom XML ---
+  scanCustomXmlNotice:
+    'Документ содержит пользовательские XML-данные (customXml). Обычная очистка сохраняет их без изменений. Расширенная удаляет все customXml-части — это может нарушить привязки полей и форм Word.',
+  scanCustomXmlAggressive: 'Удалить вместе с customXml',
+  scanCustomXmlAggressiveAria: 'Удалить метаданные вместе с пользовательскими XML-данными',
+  riskOfficeCustomXmlPreserved:
+    'Пользовательские XML-данные (customXml) сохранены без изменений и могут содержать произвольные сведения о вас или организации.',
+  riskOfficeCustomXmlRemaining: 'Пользовательские XML-данные остались в очищенном документе.',
+  riskOfficeMainPartMissing: 'В выходном пакете отсутствует ожидаемая основная часть документа.',
+  riskOfficePackageUnreadable: 'Очищенный пакет не удалось открыть как ZIP/OOXML.',
 
   // --- ScanReport: concrete found values ---
   scanFoundValuesTitle: 'Что BURAN нашёл в файле',
@@ -377,6 +390,7 @@ const strings = {
   blockedTooManyPages: 'Слишком много страниц',
   blockedTooLarge: 'Файл слишком большой',
   blockedMalformed: 'Не удалось разобрать файл',
+  blockedLegacyOffice: 'Старый формат Office',
   blockedMacro: 'Документ с макросами',
   blockedEmbeddedObject: 'Встроенные объекты',
   blockedCustomXml: 'Пользовательские XML-данные',

@@ -109,7 +109,7 @@ const strings: Strings = {
   officeStructure: 'Office document structure',
   officeStructureChecked: 'verified',
   officeDropFormats: 'JPG, PNG, WebP, PDF, DOCX, XLSX, PPTX',
-  zipDropFormats: 'JPG, PNG, WebP, HEIC/HEIF, PDF, DOCX, XLSX, PPTX, ZIP',
+  zipDropFormats: 'JPG, PNG, WebP, HEIC, TIFF, GIF, BMP, AVIF, ICO, SVG, PSD, MP3, FLAC, WAV, OGG, MP4/MOV, MKV, AVI, PDF, Office, ODT, RTF, EPUB, EML, ZIP',
 
   unsupportedTitle: 'Format not supported yet',
   unsupportedGeneric: 'This file format is not supported by BURAN yet.',
@@ -129,6 +129,7 @@ const strings: Strings = {
   ],
 
   footerText: 'BURAN — an open-source tool for local metadata cleaning.',
+  logoHomeAria: 'Back to home',
   privacyLink: 'Privacy',
   privacyTitle: 'Privacy & Security',
   privacyClose: 'Close',
@@ -221,8 +222,20 @@ const strings: Strings = {
   scanNoUpload: 'The file will not be uploaded to a server.',
   scanZipTreeAria: 'ZIP archive tree',
   scanZipDefaultName: 'archive.zip',
+  scanZipEntryClean: 'no metadata traces',
   scanZipEntryTraces: 'traces · will be cleaned',
   scanZipEntryUnchanged: 'Preserved unchanged — BURAN does not yet analyse metadata of this format.',
+
+  // --- ScanReport: Office custom XML ---
+  scanCustomXmlNotice:
+    'This document contains custom XML parts (customXml). Standard cleaning preserves them unchanged. Extended cleaning removes every customXml part, which may break Word field and form bindings.',
+  scanCustomXmlAggressive: 'Clean and remove customXml',
+  scanCustomXmlAggressiveAria: 'Remove metadata together with custom XML parts',
+  riskOfficeCustomXmlPreserved:
+    'Custom XML parts (customXml) were preserved unchanged and may hold arbitrary details about you or your organisation.',
+  riskOfficeCustomXmlRemaining: 'Custom XML parts are still present in the cleaned document.',
+  riskOfficeMainPartMissing: 'The expected main document part is missing from the output package.',
+  riskOfficePackageUnreadable: 'The cleaned package could not be opened as ZIP/OOXML.',
 
   // --- ScanReport: concrete found values ---
   scanFoundValuesTitle: 'What BURAN found in your file',
@@ -379,6 +392,7 @@ const strings: Strings = {
   blockedTooManyPages: 'Too many pages',
   blockedTooLarge: 'File is too large',
   blockedMalformed: 'Could not parse the file',
+  blockedLegacyOffice: 'Legacy Office format',
   blockedMacro: 'Document with macros',
   blockedEmbeddedObject: 'Embedded objects',
   blockedCustomXml: 'Custom XML data',

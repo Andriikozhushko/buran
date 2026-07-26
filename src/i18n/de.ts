@@ -109,7 +109,7 @@ const strings: Partial<Strings> = {
   officeStructure: 'Struktur des Office-Dokuments',
   officeStructureChecked: 'überprüft',
   officeDropFormats: 'JPG, PNG, WebP, PDF, DOCX, XLSX, PPTX',
-  zipDropFormats: 'JPG, PNG, WebP, HEIC/HEIF, PDF, DOCX, XLSX, PPTX, ZIP',
+  zipDropFormats: 'JPG, PNG, WebP, HEIC, TIFF, GIF, BMP, AVIF, ICO, SVG, PSD, MP3, FLAC, WAV, OGG, MP4/MOV, MKV, AVI, PDF, Office, ODT, RTF, EPUB, EML, ZIP',
 
   unsupportedTitle: 'Format noch nicht unterstützt',
   unsupportedGeneric: 'Dieses Dateiformat wird von BURAN noch nicht unterstützt.',
@@ -129,6 +129,7 @@ const strings: Partial<Strings> = {
   ],
 
   footerText: 'BURAN — ein Open-Source-Tool zur lokalen Metadatenbereinigung.',
+  logoHomeAria: 'Zur Startseite',
   privacyLink: 'Privacy',
   privacyTitle: 'Privacy & Security',
   privacyClose: 'Schließen',
@@ -221,8 +222,20 @@ const strings: Partial<Strings> = {
   scanNoUpload: 'Die Datei wird nicht auf einen Server hochgeladen.',
   scanZipTreeAria: 'ZIP-Archivbaum',
   scanZipDefaultName: 'archive.zip',
+  scanZipEntryClean: 'keine Metadaten-Spuren',
   scanZipEntryTraces: 'Spuren · wird bereinigt',
   scanZipEntryUnchanged: 'Unverändert erhalten — BURAN analysiert die Metadaten dieses Formats noch nicht.',
+
+  // --- ScanReport: Office custom XML ---
+  scanCustomXmlNotice:
+    'Dieses Dokument enthält benutzerdefinierte XML-Teile (customXml). Die normale Reinigung lässt sie unverändert. Die erweiterte Reinigung entfernt alle customXml-Teile, was Feld- und Formularbindungen in Word beschädigen kann.',
+  scanCustomXmlAggressive: 'Mit customXml bereinigen',
+  scanCustomXmlAggressiveAria: 'Metadaten zusammen mit benutzerdefinierten XML-Teilen entfernen',
+  riskOfficeCustomXmlPreserved:
+    'Benutzerdefinierte XML-Teile (customXml) wurden unverändert übernommen und können beliebige Angaben zu Ihnen oder Ihrer Organisation enthalten.',
+  riskOfficeCustomXmlRemaining: 'Im bereinigten Dokument sind weiterhin benutzerdefinierte XML-Teile vorhanden.',
+  riskOfficeMainPartMissing: 'Im Ausgabepaket fehlt der erwartete Hauptteil des Dokuments.',
+  riskOfficePackageUnreadable: 'Das bereinigte Paket konnte nicht als ZIP/OOXML geöffnet werden.',
 
   // --- ScanReport: concrete found values ---
   scanFoundValuesTitle: 'Was BURAN in der Datei gefunden hat',
@@ -379,6 +392,7 @@ const strings: Partial<Strings> = {
   blockedTooManyPages: 'Zu viele Seiten',
   blockedTooLarge: 'Datei ist zu groß',
   blockedMalformed: 'Die Datei konnte nicht analysiert werden',
+  blockedLegacyOffice: 'Altes Office-Format',
   blockedMacro: 'Dokument mit Makros',
   blockedEmbeddedObject: 'Eingebettete Objekte',
   blockedCustomXml: 'Benutzerdefinierte XML-Daten',

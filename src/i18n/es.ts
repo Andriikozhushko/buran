@@ -109,7 +109,7 @@ const strings: Partial<Strings> = {
   officeStructure: 'Estructura del documento de Office',
   officeStructureChecked: 'verificada',
   officeDropFormats: 'JPG, PNG, WebP, PDF, DOCX, XLSX, PPTX',
-  zipDropFormats: 'JPG, PNG, WebP, HEIC/HEIF, PDF, DOCX, XLSX, PPTX, ZIP',
+  zipDropFormats: 'JPG, PNG, WebP, HEIC, TIFF, GIF, BMP, AVIF, ICO, SVG, PSD, MP3, FLAC, WAV, OGG, MP4/MOV, MKV, AVI, PDF, Office, ODT, RTF, EPUB, EML, ZIP',
 
   unsupportedTitle: 'Formato aún no compatible',
   unsupportedGeneric: 'BURAN aún no admite este formato de archivo.',
@@ -129,6 +129,7 @@ const strings: Partial<Strings> = {
   ],
 
   footerText: 'BURAN — una herramienta open source para la limpieza local de metadatos.',
+  logoHomeAria: 'Volver al inicio',
   privacyLink: 'Privacy',
   privacyTitle: 'Privacy & Security',
   privacyClose: 'Cerrar',
@@ -221,8 +222,20 @@ const strings: Partial<Strings> = {
   scanNoUpload: 'El archivo no se subirá a ningún servidor.',
   scanZipTreeAria: 'Árbol del archivo ZIP',
   scanZipDefaultName: 'archive.zip',
+  scanZipEntryClean: 'sin rastros de metadatos',
   scanZipEntryTraces: 'rastros · se limpiará',
   scanZipEntryUnchanged: 'Conservado sin cambios — BURAN aún no analiza los metadatos de este formato.',
+
+  // --- ScanReport: Office custom XML ---
+  scanCustomXmlNotice:
+    'Este documento contiene partes XML personalizadas (customXml). La limpieza normal las conserva sin cambios. La limpieza ampliada elimina todas las partes customXml, lo que puede romper los vínculos de campos y formularios de Word.',
+  scanCustomXmlAggressive: 'Limpiar incluyendo customXml',
+  scanCustomXmlAggressiveAria: 'Eliminar los metadatos junto con las partes XML personalizadas',
+  riskOfficeCustomXmlPreserved:
+    'Las partes XML personalizadas (customXml) se conservaron sin cambios y pueden contener datos arbitrarios sobre usted o su organización.',
+  riskOfficeCustomXmlRemaining: 'El documento limpio todavía contiene partes XML personalizadas.',
+  riskOfficeMainPartMissing: 'Falta la parte principal esperada del documento en el paquete de salida.',
+  riskOfficePackageUnreadable: 'No se pudo abrir el paquete limpio como ZIP/OOXML.',
 
   // --- ScanReport: concrete found values ---
   scanFoundValuesTitle: 'Lo que BURAN encontró en el archivo',
@@ -379,6 +392,7 @@ const strings: Partial<Strings> = {
   blockedTooManyPages: 'Demasiadas páginas',
   blockedTooLarge: 'El archivo es demasiado grande',
   blockedMalformed: 'No se pudo analizar el archivo',
+  blockedLegacyOffice: 'Formato Office antiguo',
   blockedMacro: 'Documento con macros',
   blockedEmbeddedObject: 'Objetos incrustados',
   blockedCustomXml: 'Datos XML personalizados',

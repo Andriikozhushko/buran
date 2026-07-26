@@ -320,12 +320,15 @@ function pptxEntries(extra: Record<string, string | Buffer> = {}): Record<string
 }
 
 // ---------------------------------------------------------------------------
-// A minimal CFB / OLE compound file header (encrypted Office magic)
+// Minimal CFB / OLE compound files. Real CFB directories store stream names
+// as UTF-16LE; BURAN's classifier sniffs those names, so the fixtures carry
+// the marker stream name of the class they represent.
 // ---------------------------------------------------------------------------
-function cfbHeader(): Buffer {
-  const buf = Buffer.alloc(512);
+function cfbWithStreamName(streamName: string): Buffer {
+  const buf = Buffer.alloc(1024);
   const sig = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
   for (let i = 0; i < sig.length; i++) buf[i] = sig[i];
+  buf.write(streamName, 512, 'utf16le');
   return buf;
 }
 
@@ -367,8 +370,9 @@ async function main() {
     ),
   ]);
 
-  // Blocked — encrypted (CFB) and malformed (PK magic but broken zip)
-  writeFileSync(join(DIR, 'office-encrypted.docx'), cfbHeader());
+  // Blocked — encrypted OOXML (CFB), legacy binary Office (CFB), malformed zip
+  writeFileSync(join(DIR, 'office-encrypted.docx'), cfbWithStreamName('EncryptionInfo'));
+  writeFileSync(join(DIR, 'office-legacy.doc'), cfbWithStreamName('WordDocument'));
   const broken = Buffer.concat([Buffer.from('PK\x03\x04', 'latin1'), Buffer.from('not a real zip body')]);
   writeFileSync(join(DIR, 'office-malformed.docx'), broken);
 
@@ -376,7 +380,7 @@ async function main() {
     writeFileSync(join(DIR, name), buf);
   }
 
-  const all = [...out.map(([n]) => n), 'office-encrypted.docx', 'office-malformed.docx'];
+  const all = [...out.map(([n]) => n), 'office-encrypted.docx', 'office-legacy.doc', 'office-malformed.docx'];
   for (const n of all) console.log(`✓ ${n}`);
   console.log(`\nOffice fixtures generated in ${DIR}`);
 }

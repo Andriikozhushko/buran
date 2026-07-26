@@ -9,23 +9,28 @@
 
 import type JSZip from 'jszip';
 import type { MetadataFinding } from '../types';
+import { TECHNICAL_COLOUR_FIELDS } from '../types';
 import { jpegHandler } from '../jpeg';
 import { pngHandler } from '../png';
 import { webpHandler } from '../webp';
+import { tiffHandler } from '../tiff';
+import { gifHandler } from '../gif';
+import { bmpHandler } from '../bmp';
 import type { EmbeddedImage, OfficeBlock, OfficeFormat, OfficeScanData } from './types';
 import {
+  classifyCfb,
   classifyOffice,
   collectEmbeddedImages,
   detectBlockedStructures,
   detectOfficeContainer,
 } from './detect';
-import { loadPackage, officeBlock, readBytes, readText, type LoadedPackage } from './package';
+import { isNeutralDate, loadPackage, officeBlock, readBytes, readText, type LoadedPackage } from './package';
 import { APP_PART, CORE_PART, CUSTOM_PART, mkFinding, readTagText, toArrayBuffer } from './shared';
 import { scanDocx, type OfficePartScan } from './docx';
 import { scanXlsx } from './xlsx';
 import { scanPptx } from './pptx';
 
-const imageHandlers = { jpeg: jpegHandler, png: pngHandler, webp: webpHandler };
+const imageHandlers = { jpeg: jpegHandler, png: pngHandler, webp: webpHandler, tiff: tiffHandler, gif: gifHandler, bmp: bmpHandler };
 
 /** Scan the common docProps parts. */
 async function scanProps(
@@ -68,6 +73,20 @@ async function scanProps(
       ['Application', 'Application', 'office-app', 'medium', ''],
       ['AppVersion', 'Application version', 'office-app', 'low', ''],
       ['Template', 'Template', 'office-app', 'medium', ''],
+      // Standard Word extended properties.  These are not all personal by
+      // themselves, but make the Office report explainable and expose useful
+      // document-history signals alongside the author fields above.
+      ['TotalTime', 'Total editing time (minutes)', 'office-dates', 'low', ''],
+      ['Pages', 'Pages', 'office-custom', 'low', ''],
+      ['Words', 'Words', 'office-custom', 'low', ''],
+      ['Characters', 'Characters', 'office-custom', 'low', ''],
+      ['CharactersWithSpaces', 'Characters (with spaces)', 'office-custom', 'low', ''],
+      ['Lines', 'Lines', 'office-custom', 'low', ''],
+      ['Paragraphs', 'Paragraphs', 'office-custom', 'low', ''],
+      ['DocSecurity', 'Document security setting', 'office-custom', 'low', ''],
+      ['HyperlinksChanged', 'Hyperlinks changed', 'office-custom', 'low', ''],
+      ['SharedDoc', 'Shared document', 'office-custom', 'low', ''],
+      ['ScaleCrop', 'Scale crop', 'office-custom', 'low', ''],
     ];
     for (const [tag, label, category, severity, desc] of fields) {
       const value = readTagText(app, tag);
@@ -118,19 +137,19 @@ function scanEmbeddedImages(
     try {
       const ab = toArrayBuffer(bytes);
       const scan = imageHandlers[img.format].scan(ab);
-      const personal = scan.findings.filter(
-        (f) => !['PNG:iCCP', 'PNG:sRGB', 'PNG:gAMA', 'PNG:cHRM', 'WebP:ICCP'].includes(f.field),
-      );
+      const personal = scan.findings.filter((f) => !TECHNICAL_COLOUR_FIELDS.has(f.field));
       if (personal.length > 0) withMeta++;
       for (const f of personal) if (f.value) raw.push(f.value);
     } catch {
       // Unreadable embedded image — leave for the block path / verification.
     }
   }
-  if (images.length > 0) {
+  // Reported only when at least one image actually carries metadata — the
+  // found-values list promises removal, and "0 of N" has nothing to remove.
+  if (withMeta > 0) {
     findings.push(
       mkFinding('office-embedded-images', 'office:embeddedImages', 'Embedded images with metadata',
-        `${withMeta} of ${images.length}`, withMeta > 0 ? 'medium' : 'low', ''),
+        `${withMeta} of ${images.length}`, 'medium', ''),
     );
   }
   return { findings, raw };
@@ -139,9 +158,22 @@ function scanEmbeddedImages(
 export async function scanOffice(buffer: ArrayBuffer): Promise<OfficeBlock | { data: OfficeScanData }> {
   const container = detectOfficeContainer(buffer);
   if (container === 'cfb') {
+    const cfbClass = classifyCfb(buffer);
+    if (cfbClass === 'legacy-office') {
+      return officeBlock(
+        'legacy-office',
+        'Это документ старого бинарного формата Office (.doc/.xls/.ppt, контейнер OLE/CFB). BURAN пока не умеет безопасно очищать легаси-формат, поэтому файл не был изменён. Пересохраните документ как DOCX/XLSX/PPTX и загрузите снова.',
+      );
+    }
+    if (cfbClass === 'encrypted') {
+      return officeBlock(
+        'encrypted',
+        'Документ защищён паролем или зашифрован (формат OLE/CFB). BURAN не может прочитать и безопасно изменить такой файл, поэтому он не был изменён.',
+      );
+    }
     return officeBlock(
-      'encrypted',
-      'Документ защищён паролем или зашифрован (формат OLE/CFB). BURAN не может прочитать и безопасно изменить такой файл, поэтому он не был изменён.',
+      'unsupported-package',
+      'Файл в контейнере OLE/CFB, но не является поддерживаемым Office-документом. BURAN не изменил файл.',
     );
   }
   if (container !== 'zip') {
@@ -162,7 +194,10 @@ export async function scanOffice(buffer: ArrayBuffer): Promise<OfficeBlock | { d
     );
   }
 
-  const structuralBlock = detectBlockedStructures(loaded);
+  // Custom XML no longer blocks the package: it is disclosed as a risk and the
+  // user picks the standard pass (parts preserved) or the extended one (parts
+  // removed). Every other structural block still applies.
+  const structuralBlock = detectBlockedStructures(loaded, { allowCustomXmlForInspection: true });
   if (structuralBlock) return structuralBlock;
 
   return { data: await buildScanData(loaded, format) };
@@ -170,6 +205,7 @@ export async function scanOffice(buffer: ArrayBuffer): Promise<OfficeBlock | { d
 
 async function buildScanData(loaded: LoadedPackage, format: OfficeFormat): Promise<OfficeScanData> {
   const { zip } = loaded;
+  const hasCustomXml = loaded.entryNames.some((name) => name.startsWith('customXml/'));
   const props = await scanProps(zip);
 
   let formatScan: OfficePartScan;
@@ -186,9 +222,17 @@ async function buildScanData(loaded: LoadedPackage, format: OfficeFormat): Promi
   const imageScan = scanEmbeddedImages(images, bytesByPath);
 
   const findings: MetadataFinding[] = [...props.findings, ...formatScan.findings, ...imageScan.findings];
-  findings.push(
-    mkFinding('office-container', 'office:zipTimestamps', 'ZIP container timestamps', 'Present', 'low', ''),
+  // Only report container timestamps when they actually carry information —
+  // an already-cleaned package (all entries at the neutral date) must not be
+  // told again that its timestamps "will be removed".
+  const timestampsCarryInfo = loaded.entryNames.some(
+    (name) => !isNeutralDate(loaded.zip.files[name].date),
   );
+  if (timestampsCarryInfo) {
+    findings.push(
+      mkFinding('office-container', 'office:zipTimestamps', 'ZIP container timestamps', 'Present', 'low', ''),
+    );
+  }
 
   const raw = [...props.raw, ...formatScan.raw, ...imageScan.raw].filter((s) => s && s.trim().length >= 3);
 
@@ -204,6 +248,10 @@ async function buildScanData(loaded: LoadedPackage, format: OfficeFormat): Promi
     hasRevisions: formatScan.hasRevisions,
     entryCount: loaded.entryCount,
     uncompressedSize: loaded.uncompressedSize,
-    unsupportedMetadataRisk: [],
+    hasCustomXml,
+    // Custom XML can carry arbitrary document data, so its presence is always
+    // disclosed. It no longer blocks cleaning: the standard pass preserves the
+    // parts and the extended pass removes them, and each states what it did.
+    unsupportedMetadataRisk: hasCustomXml ? ['buran:risk/office.custom-xml-preserved'] : [],
   };
 }

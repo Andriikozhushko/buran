@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ScanResult, VerificationResult } from './lib/formats/types';
+import { personalFindingCount } from './lib/formats/types';
+import { acceptedExtensions } from './lib/formats/registry';
 import { validateFile } from './lib/validation';
 import { sha256 } from './lib/hash';
 import { Layout } from './components/Layout';
@@ -246,7 +248,7 @@ export default function App() {
     };
   }, [phase.phase, handleFile]);
 
-  const handleStartClean = useCallback(async () => {
+  const handleStartClean = useCallback(async (removeCustomXml = false) => {
     if (phase.phase !== 'scan-done') return;
 
     const scanResult = phase.scanResult;
@@ -288,11 +290,13 @@ export default function App() {
         // Compute SHA-256 hash of clean output
         const hash = await sha256(response.cleanBuffer);
 
+        // Only the hash is added here. Every other field — including the
+        // orientation/re-encode disclosure — comes from the format verifier and
+        // must not be overwritten, or the success screen and certificate would
+        // under-report what BURAN actually did to the pixels.
         const verification: VerificationResult = {
           ...response.verification,
           cleanHash: hash,
-          orientationApplied: false,
-          pixelDataReencoded: false,
         };
 
         setPhase({
@@ -314,6 +318,7 @@ export default function App() {
         buffer: bufferToClean,
         scanResult,
         preserveJpegOrientation: needsOrientationCorrection,
+        removeCustomXml,
         locale,
       },
       { transfer: [bufferToClean] },
@@ -321,7 +326,7 @@ export default function App() {
   }, [clearWatchdog, phase, startWatchdog, t, locale]);
 
   const processingState = (message: string) => (
-    <div className="text-center space-y-4">
+    <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center space-y-4">
       <p className="text-[15px] font-medium text-[#9c6b3f] animate-pulse whitespace-pre-line">{message}</p>
       <Button variant="secondary" size="sm" onClick={handleCancel}>{t.appCancel}</Button>
     </div>
@@ -332,7 +337,7 @@ export default function App() {
       case 'idle':
         return (
           <>
-            <input ref={fileInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.pdf,.docx,.xlsx,.pptx,.zip" className="hidden"
+            <input ref={fileInputRef} type="file" accept={acceptedExtensions().map((ext) => `.${ext}`).join(',')} className="hidden"
               onChange={(e) => {
                 if (e.target.files?.[0]) handleFile(e.target.files[0]);
                 if (fileInputRef.current) fileInputRef.current.value = '';
@@ -386,12 +391,7 @@ export default function App() {
               cleanBuffer: phase.cleanBuffer,
               originalHash: '',
               cleanHash: phase.cleanHash,
-              metadataFound: phase.scanResult.findings.filter(
-                (f) =>
-                  !['PNG:iCCP', 'PNG:sRGB', 'PNG:gAMA', 'PNG:cHRM', 'WebP:ICCP'].includes(
-                    f.field,
-                  ),
-              ).length,
+              metadataFound: personalFindingCount(phase.scanResult.findings),
               metadataRemoved: phase.verification.metadataRemaining,
             }}
             verification={phase.verification}
@@ -430,7 +430,7 @@ export default function App() {
   };
 
   return (
-    <Layout phase={phase.phase} onVideoEnded={handleVideoEnded}>
+    <Layout phase={phase.phase} onVideoEnded={handleVideoEnded} onLogoClick={handleReset}>
       {renderContent()}
     </Layout>
   );

@@ -7,6 +7,7 @@ interface LayoutProps {
   children: ReactNode;
   phase: string;
   onVideoEnded?: () => void;
+  onLogoClick?: () => void;
 }
 
 const GITHUB_REPO_URL = 'https://github.com/Andriikozhushko/buran';
@@ -56,7 +57,8 @@ function VideoMascot({ playFull, onEnded }: { playFull: boolean; onEnded?: () =>
       <div className="relative rounded-3xl overflow-hidden bg-white max-h-[34vh]">
         <video
           ref={videoRef}
-          src="/hero-video.mp4"
+          src={`${import.meta.env.BASE_URL}hero-video.mp4`}
+          poster={`${import.meta.env.BASE_URL}hero-poster.jpg`}
           className="h-[34vh] w-auto object-contain block"
           aria-hidden="true"
           muted
@@ -69,11 +71,16 @@ function VideoMascot({ playFull, onEnded }: { playFull: boolean; onEnded?: () =>
   );
 }
 
-export function Layout({ children, phase, onVideoEnded }: LayoutProps) {
+export function Layout({ children, phase, onVideoEnded, onLogoClick }: LayoutProps) {
   const t = useT();
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  // Hero (with video) is shown while idle or while the file is being processed.
-  const showHero = phase === 'idle' || phase === 'scanning' || phase === 'cleaning';
+  // Hero (with video) is shown while idle or while the file is being scanned —
+  // the "eating" animation is gated to the scan phase (see App.tsx). Cleaning
+  // must NOT use this branch: scan-done unmounts the hero, so re-entering it
+  // here would remount VideoMascot from scratch, snapping the video back to
+  // frame 0 for a paint before its effect seeks forward — a visible flash back
+  // to the idle-looking hero right after the (usually near-instant) clean.
+  const showHero = phase === 'idle' || phase === 'scanning';
   const isIdle = phase === 'idle';
 
   const trustItems = [t.trustLocal, t.trustNoReg, t.trustNoStorage, t.trustOpenSource];
@@ -91,7 +98,14 @@ export function Layout({ children, phase, onVideoEnded }: LayoutProps) {
             {t.privacyLink}
           </button>
         </div>
-        <img src="/buran-logo.png" alt="BURAN" className="h-20 w-auto object-contain sm:h-24" />
+        <button
+          type="button"
+          onClick={onLogoClick}
+          aria-label={t.logoHomeAria}
+          className="cursor-pointer rounded-xl transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9c6b3f]"
+        >
+          <img src={`${import.meta.env.BASE_URL}buran-logo.png`} alt="BURAN" className="h-20 w-auto object-contain sm:h-24" />
+        </button>
         <div className="flex justify-start">
           <LanguageSwitcher />
         </div>
@@ -148,7 +162,7 @@ export function Layout({ children, phase, onVideoEnded }: LayoutProps) {
               GitHub
             </a>
           </p>
-          <p className="text-[11px] text-gray-300 flex-shrink-0 ml-3">v0.1.0</p>
+          <p className="text-[11px] text-gray-300 flex-shrink-0 ml-3">v1.0.1</p>
         </div>
       </footer>
     </div>

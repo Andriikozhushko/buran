@@ -1,5 +1,7 @@
 import type { PdfVerification, PdfBlockReason } from './pdf/types';
 import type { OfficeScanData, OfficeVerification, OfficeBlockReason } from './office/types';
+import type { OdfScanData } from './odf';
+import type { EpubScanData } from './epub';
 import type { ZipScanData, ZipVerification, ZipBlockReason } from './zip/types';
 import type { HeicScanData, HeicVerification } from './heic/types';
 
@@ -42,7 +44,55 @@ export interface MetadataFinding {
   description: string;
 }
 
-export type SupportedFormat = 'jpeg' | 'png' | 'webp' | 'heic' | 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'zip';
+/**
+ * Colour-management fields that are technical, deliberately preserved, and
+ * never personal — excluded everywhere findings are counted as "traces to
+ * remove" (summary counts, nested-entry counts, verification).
+ */
+export const TECHNICAL_COLOUR_FIELDS = new Set([
+  'PNG:iCCP',
+  'PNG:sRGB',
+  'PNG:gAMA',
+  'PNG:cHRM',
+  'WebP:ICCP',
+]);
+
+/** Findings that represent removable personal/identifying metadata. */
+export function personalFindingCount(findings: MetadataFinding[]): number {
+  return findings.filter((f) => !TECHNICAL_COLOUR_FIELDS.has(f.field)).length;
+}
+
+export type SupportedFormat =
+  | 'jpeg'
+  | 'png'
+  | 'webp'
+  | 'heic'
+  | 'tiff'
+  | 'gif'
+  | 'bmp'
+  | 'avif'
+  | 'ico'
+  | 'svg'
+  | 'mp3'
+  | 'flac'
+  | 'wav'
+  | 'ogg'
+  | 'mp4'
+  | 'mkv'
+  | 'avi'
+  | 'rtf'
+  | 'psd'
+  | 'eml'
+  | 'pdf'
+  | 'docx'
+  | 'xlsx'
+  | 'pptx'
+  | 'odt'
+  | 'ods'
+  | 'odp'
+  | 'odg'
+  | 'epub'
+  | 'zip';
 
 export interface PreservedInfo {
   hasIccProfile: boolean;
@@ -77,6 +127,10 @@ export interface ScanResult {
   pdf?: PdfScanMeta;
   /** Present only for Office (DOCX/XLSX/PPTX) scans. */
   office?: OfficeScanData;
+  /** Present only for OpenDocument (ODT/ODS/ODP/ODG) scans. */
+  odf?: OdfScanData;
+  /** Present only for EPUB scans. */
+  epub?: EpubScanData;
   /** Present only for ZIP archive scans. */
   zip?: ZipScanData;
   /** Present only for HEIC/HEIF clean-export scans. */
