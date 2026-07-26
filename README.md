@@ -122,17 +122,25 @@ docs/
 
 ## Supported formats
 
-| Format | Support level |
-| --- | --- |
-| JPEG | Supported |
-| PNG | Supported |
-| WebP | Supported |
-| HEIC / HEIF | Supported via clean export |
-| PDF | Supported, metadata-only |
-| DOCX / XLSX / PPTX | Supported, metadata-only |
-| ZIP | Supported with recursive cleaning of supported nested files |
+BURAN supports **30 formats**, detected from their content (magic bytes), never
+the filename. Every clean is independently re-verified, and a cleaned file
+re-scans as clean.
 
-Roadmap formats are tracked in [docs/FORMAT_ROADMAP.md](docs/FORMAT_ROADMAP.md).
+| Category | Formats | Notes |
+| --- | --- | --- |
+| Images | JPEG, PNG, WebP, TIFF, GIF, BMP, AVIF, ICO, SVG, PSD | HEIC / HEIF via verified clean export. SVG has an active-content security gate. |
+| Documents | PDF, DOCX, XLSX, PPTX, ODT / ODS / ODP / ODG, RTF, EPUB, EML | Metadata-only; visible content preserved. EPUB keeps the book's bibliography. |
+| Audio | MP3, FLAC, WAV, OGG / Opus | Audio stream preserved byte-for-byte. |
+| Video | MP4 / M4A / M4V / MOV, MKV / WebM, AVI | Cleaned in place; media bitstream untouched, GPS and timestamps removed. |
+| Archives | ZIP | Recursive cleaning of supported nested files; one nested ZIP level. |
+
+Honest blocks by design (not gaps): legacy binary Office (`.doc/.xls/.ppt`) and
+`.msg`, camera RAW, and encrypted / DRM / macro-bearing documents are refused
+with an explanation rather than partially processed.
+
+Per-format claims live in
+[docs/FORMAT_SUPPORT_MATRIX.md](docs/FORMAT_SUPPORT_MATRIX.md); the roadmap is in
+[docs/FORMAT_ROADMAP.md](docs/FORMAT_ROADMAP.md).
 
 ## What BURAN does not do
 
